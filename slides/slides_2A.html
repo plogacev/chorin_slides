@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>Bayesian Methods in the Language Sciences</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Pavel Logačev" />
+    <meta name="date" content="2022-07-06" />
+    <script src="libs/header-attrs/header-attrs.js"></script>
+    <link href="libs/remark-css/uwm.css" rel="stylesheet" />
+    <link href="libs/remark-css/uwm-fonts.css" rel="stylesheet" />
+    <link href="libs/remark-css/hygge.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+.title[
+# Bayesian Methods in the Language Sciences
+]
+.subtitle[
+## Part 2A
+]
+.author[
+### Pavel Logačev
+]
+.institute[
+### Boğaziçi University
+]
+.date[
+### 2022-07-06
+]
+
+---
+
+
+&lt;!--   
+highlightstyle
+[agate, androidstudio, arta, asceti, atelier-cave.dark, atelier-cave.light, atelier-dune.dark, atelier-dune.light, atelier-estuary.dark, atelier-estuary.light, atelier-forest.dark, atelier-forest.light, atelier-heath.dark, atelier-heath.light, atelier-lakeside.dark, atelier-lakeside.light, atelier-plateau.dark, atelier-plateau.light, atelier-savanna.dark, atelier-savanna.light, atelier-seaside.dark, atelier-seaside.light, atelier-sulphurpool.dark, atelier-sulphurpool.light, brown_paper, codepen-embed, color-brewer, dark, darkula, default, docco, far, foundation, github, github-gist, googlecode, grayscale, hopscotch, hybrid, idea, ir_black, kimbie.dark, kimbie.light, magula, mono-blue, monokai, monokai_sublime, obsidian, paraiso.dark, paraiso.light, pojoaque, railscast, rainbow, school_book, solarized_dark, solarized_light, styles_list.txt, sunburst, tomorrow, tomorrow-night-blue, tomorrow-night-bright, tomorrow-night, tomorrow-night-eightie, v, xcode, zenburn]
+
+
+css: [default, metropolis, metropolis-fonts]
+        css: ["uwm", "uwm-fonts"]
+ --&gt;
+ 
+&lt;!--
+Links/examples for slides:
+https://www.garrickadenbuie.com/blog/better-progressive-xaringan/
+--&gt;
+
+&lt;style type="text/css"&gt;
+  .title-slide {
+    background-image: url(https://raw.githubusercontent.com/ttuowang/Xaringan-wisconsin-theme/master/uwm-logo/color-flush-UWlogo-prin); 
+    background-position: 9% 15%;
+    background-size: 300px;
+    background-color: #fff;
+      padding-left: 100px;  /* delete this for 4:3 aspect ratio */
+  }
+&lt;/style&gt;
+
+&lt;style type="text/css"&gt;
+.bold-last-item &gt; ul &gt; li:last-of-type,
+.bold-last-item &gt; ol &gt; li:last-of-type {
+  font-weight: bold;
+}
+&lt;/style&gt;
+
+&lt;style type="text/css"&gt;
+.entry-content ul li {
+    margin-bottom: 0.5em;
+}
+&lt;/style&gt;
+
+&lt;style type="text/css"&gt;
+.show-only-last-code-result pre + pre:not(:last-of-type) code[class="remark-code"] {
+    display: none;
+}
+&lt;/style&gt;
+
+&lt;style type="text/css"&gt;
+
+.tiny .remark-code { /*Change made here*/
+  font-size: 750% !important;
+}
+&lt;/style&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+&lt;!--
+library(bayesplot)
+library(tidybayes)
+library(brmstools)
+--&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+# Priors | Proper and Improper
+- Until now, we have ignored the prior distributions and used the default `brms` priors.
+- Those are flat for all nearly all parameters.
+
+
+
+
+
+```r
+prior_summary(bm_ex1_avg1)
+```
+
+```
+##                     prior     class                         coef group resp dpar nlpar lb ub       source
+##                    (flat)         b                                                               default
+##                    (flat)         b                  cGenderMasc                             (vectorized)
+##                    (flat)         b                     cLangCMN                             (vectorized)
+##                    (flat)         b         cLangCMN:cGenderMasc                             (vectorized)
+##                    (flat)         b                      cVoiced                             (vectorized)
+##                    (flat)         b          cVoiced:cGenderMasc                             (vectorized)
+##                    (flat)         b             cVoiced:cLangCMN                             (vectorized)
+##                    (flat)         b cVoiced:cLangCMN:cGenderMasc                             (vectorized)
+##  student_t(3, 44.7, 46.1) Intercept                                                               default
+##     student_t(3, 0, 46.1)     sigma                                                     0         default
+```
+
+---
+# Priors | Proper and Improper
+
+- Such priors behave **like** uniform distributions, but they are **not** probability distributions.
+
+- In order for the area of the prior to add up to `\(1\)` over the interval `\((-\infty; +\infty)\)`, its value would need to be `\(0\)` everywhere.
+
+- Using a flat prior is equivalent to using a uniform prior over a very wide interval.
+
+- They are called **improper priors**.
+
+![](slides_2A_files/figure-html/unnamed-chunk-12-1.png)&lt;!-- --&gt;
+
+
+---
+# Priors | Default Priors
+
+.pull-left[
+- In a linear model, `brms` places by default
+  - **Weakly informative priors** on the intercept parameter
+  - **Weakly informative priors** on the `\(\sigma\)` parameter
+  - **Uninformative (improper) priors** on slope parameters 
+  
+- Such priors often do not reflect our true knowledge of the situation
+  - Weakly informative priors for the **intercept** and **$\sigma$** seem OK to someone with my knowledge of VOT, but maybe not to a phonetician.
+  - Uninformative priors on intercepts imply that VOT difference between languages could amount to several minutes, or even weeks! - That can't be right.
+]
+
+.pull-right[
+![](slides_2A_files/figure-html/unnamed-chunk-13-1.png)&lt;!-- --&gt;
+]
+
+---
+# Priors | So how do you choose priors?
+
+- At a minimum, your priors should reflect the measurement scale and some prior knowledge of the phenomenon. For example:
+  - the intercept (average VOT) will likely be between 0 and 200
+  - the effect of voicing will be between `\(-150ms\)` and `\(-50ms\)`
+  - the effects of other predictors will be between `\(-80ms\)` and `\(-80ms\)`
+  - `\(\sigma\)` is unlikely to be larger than `\(100\,ms\)` 
+  
+- The normal distribution has the convenient property that 95% of the probability mass is within the interval `\(\pm 2\cdot SD\)` of the mean.
+
+- We can select the prior such that the most likely range reflects the 95% interval around the mean ($\pm 2\cdot SD$), or 65% ( `\(\pm 1\cdot SD\)` ) if you want to be conservative.
+
+
+```r
+priors_vot &lt;- 
+c( prior( class = 'Intercept', prior = normal(100, 50)),
+   prior( class = 'b', coef = "cVoiced", prior = normal(100, 25)),
+   prior( class = 'b', prior = normal(0, 40)),
+   prior( class = 'sigma', prior = normal(0, 40))
+)
+```
+
+
+---
+# Priors | How much do priors matter?
+
+- Let's refit the last model with these prior and check how much they even matter.
+
+
+```r
+bm_ex1_avg1B &lt;- brm( msVOT ~ 1 + cVoiced*cLangCMN*cGenderMasc, # model specification
+                    data = ex1_avgs, # the data to use
+                    prior = priors_vot, # the priors
+                    file = "../workspace/bm_ex1_avg_m1B") # file to save the model to (optional)
+```
+
+- It turns out that the priors don't even matter all that much for the **estimates** of particular model.
+- This is because they are much flatter than the likelihood.  
+
+.pull-left[
+
+```r
+fixef(bm_ex1_avg1) %&gt;% round(0) %&gt;% .[,-2]
+```
+
+```
+##                              Estimate Q2.5 Q97.5
+## Intercept                          51   49    52
+## cVoiced                           -66  -70   -63
+## cLangCMN                            4    0     8
+## cGenderMasc                        -4   -8     0
+## cVoiced:cLangCMN                    1   -7     9
+## cVoiced:cGenderMasc                13    5    20
+## cLangCMN:cGenderMasc                0   -8     7
+## cVoiced:cLangCMN:cGenderMasc       13   -2    28
+```
+]
+
+.pull-right[
+
+```r
+fixef(bm_ex1_avg1B) %&gt;% round(0) %&gt;% .[,-2]
+```
+
+```
+##                              Estimate Q2.5 Q97.5
+## Intercept                          51   49    53
+## cVoiced                           -65  -69   -62
+## cLangCMN                            4    0     8
+## cGenderMasc                        -4   -8     0
+## cVoiced:cLangCMN                    1   -6     8
+## cVoiced:cGenderMasc                13    5    20
+## cLangCMN:cGenderMasc                0   -8     7
+## cVoiced:cLangCMN:cGenderMasc       13   -2    28
+```
+]
+
+---
+# Hypothesis Testing II | Bayes Factors
+
+
+---
+# Hypothesis Testing II | Bayes Factors
+
+- The Bayes Factor is the posterior odds of two models `\(M_1\)` and `\(M_2\)` given the data: `\(BF_{12}\)` = `\(\frac{P(M_1|D)}{P(M_2|D)}\)`.
+
+- Often interpreted as the **relative evidence** for `\(M_1\)`.
+
+- `hypothesis()` can also perform the Savage-Dickey approximation to the Bayes Factor for nested models.
+
+- It exploits the fact that the ratio of posterior odds for two nested models `\(\frac{P(M_1|D)}{P(M_2|D)}\)` can be approximated by the ratio between its prior and its posterior. 
+
+- But we will need to refit the model yet again.
+
+
+```r
+hypothesis(bm_ex1_avg1B, "cGenderMasc = 0")
+```
+
+```
+## Hypothesis Tests for class b:
+##          Hypothesis Estimate Est.Error CI.Lower CI.Upper Evid.Ratio Post.Prob Star
+## 1 (cGenderMasc) = 0    -3.78      1.91    -7.55     0.08         NA        NA     
+## ---
+## 'CI': 90%-CI for one-sided and 95%-CI for two-sided hypotheses.
+## '*': For one-sided hypotheses, the posterior probability exceeds 95%;
+## for two-sided hypotheses, the value tested against lies outside the 95%-CI.
+## Posterior probabilities of point hypotheses assume equal prior probabilities.
+```
+
+---
+# Hypothesis Testing II | Bayes Factors
+
+- Let's refit the model to include samples from the prior.
+
+
+```r
+bm_ex1_avg1C &lt;- brm( msVOT ~ 1 + cVoiced*cLangCMN*cGenderMasc, # model specification
+                    data = ex1_avgs, # the data to use
+                    prior = priors_vot, # the priors
+                    sample_prior = "yes", # keep samples from the prior
+                    file = "../workspace/bm_ex1_avg_m1C") # file to save the model to (optional)
+```
+
+- The Bayes Factor suggests that a model with a main effect of gender set to `\(0\)` has in fact a higher posterior probability than a model where that effect is assumed to be between  `\(-80ms\)` and `\(-80ms\)` (as per the prior).
+
+```r
+hypothesis(bm_ex1_avg1C, "cGenderMasc = 0")
+```
+
+```
+## Hypothesis Tests for class b:
+##          Hypothesis Estimate Est.Error CI.Lower CI.Upper Evid.Ratio Post.Prob Star
+## 1 (cGenderMasc) = 0    -3.75      1.95    -7.59     0.13       3.04      0.75     
+## ---
+## 'CI': 90%-CI for one-sided and 95%-CI for two-sided hypotheses.
+## '*': For one-sided hypotheses, the posterior probability exceeds 95%;
+## for two-sided hypotheses, the value tested against lies outside the 95%-CI.
+## Posterior probabilities of point hypotheses assume equal prior probabilities.
+```
+
+
+---
+# Hypothesis Testing II | Bayes Factors
+
+- I recommend [Heck et al. (in press)](https://psyarxiv.com/cu43g) and [Nicenboim, Schad, and Vasishth (2022)](https://vasishth.github.io/bayescogsci/book/) for more details on Bayes Factors.
+
+
+---
+# Hieararchical Models
+
+- So far, we have fitted models to subject averages to keep things simple.
+
+$$
+VOT = a + b_1\cdot voicing + b_2\cdot gender + b_3\cdot (voicing \times gender) + \ldots
+$$
+- But let's review the actual data:
+
+```r
+head(ex1) %&gt;% head()
+```
+
+```
+## # A tibble: 6 × 10
+## # Groups:   gender [1]
+##   lang  gender subject_lang subject world_bet voicing   consonant vowel msVOT msVowel
+##   &lt;chr&gt; &lt;chr&gt;  &lt;chr&gt;        &lt;chr&gt;   &lt;chr&gt;     &lt;chr&gt;     &lt;chr&gt;     &lt;chr&gt; &lt;dbl&gt;   &lt;dbl&gt;
+## 1 EN    F      EN-F01       F01     khon      voiceless kh        o       123     387
+## 2 EN    F      EN-F01       F01     kho.ko    voiceless kh        o        70     195
+## 3 EN    F      EN-F01       F01     khek      voiceless kh        e        58     251
+## 4 EN    F      EN-F01       F01     thi.pi    voiceless th        i        69     184
+## 5 EN    F      EN-F01       F01     do9       voiced    d         o        11     211
+## 6 EN    F      EN-F01       F01     khI.kIxN  voiceless kh        I        57     136
+```
+
+
+
+
+---
+# Hieararchical Models
+
+- A more appropriate model structure would contain adjustments for subjects and items.
+
+`\(VOT = (a + a_S + a_I) + (b_1 + b_{1,S})\cdot voicing +(b_2 + b_{2,I})\cdot gender +(b_3)\cdot (voicing \times gender) + \ldots\)`
+
+
+
+
+
+```r
+bm_ex1_m1 &lt;- brm( msVOT ~ 1 + cVoiced*cLangCMN*cGenderMasc + (cVoiced + 1|subject_lang) + (cVoiced*cGenderMasc|world_bet), # maximal model specification
+                    data = ex1, # the data to use
+                    prior = priors_vot, # the priors
+                    chains = 4, # number of chains to run 
+                    cores = 4, # number of cores to use 
+                    iter = 2000, # total number of iterations
+                    sample_prior = "yes", # keep samples from the prior
+                    file = "../workspace/bm_ex1_m1") # file to save the model to (optional)
+```
+
+
+---
+# Hieararchical Models
+
+.tiny[
+
+```r
+summary(bm_ex1_m1)
+```
+
+```
+##  Family: gaussian 
+##   Links: mu = identity; sigma = identity 
+## Formula: msVOT ~ 1 + cVoiced * cLangCMN * cGenderMasc + (cVoiced + 1 | subject_lang) + (cVoiced * cGenderMasc | world_bet) 
+##    Data: ex1 (Number of observations: 1570) 
+##   Draws: 4 chains, each with iter = 2000; warmup = 1000; thin = 1;
+##          total post-warmup draws = 4000
+## 
+## Group-Level Effects: 
+## ~subject_lang (Number of levels: 40) 
+##                        Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sd(Intercept)              5.93      0.84     4.49     7.80 1.00     1195     2367
+## sd(cVoiced)               10.71      1.53     8.08    13.99 1.00     1321     2111
+## cor(Intercept,cVoiced)    -0.95      0.05    -1.00    -0.82 1.00     1754     2349
+## 
+## ~world_bet (Number of levels: 83) 
+##                                      Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sd(Intercept)                            7.88      1.30     5.42    10.43 1.00      540     1402
+## sd(cVoiced)                             16.14      2.60    11.19    21.14 1.00      431     1088
+## sd(cGenderMasc)                          2.59      1.26     0.25     5.00 1.00      862     1131
+## sd(cVoiced:cGenderMasc)                  4.88      2.53     0.32     9.89 1.00      751     1035
+## cor(Intercept,cVoiced)                  -0.88      0.06    -0.98    -0.73 1.00      781     1571
+## cor(Intercept,cGenderMasc)              -0.03      0.32    -0.65     0.62 1.00     2115     2479
+## cor(cVoiced,cGenderMasc)                 0.09      0.33    -0.61     0.68 1.00     2383     2320
+## cor(Intercept,cVoiced:cGenderMasc)       0.06      0.33    -0.63     0.69 1.00     2479     2530
+## cor(cVoiced,cVoiced:cGenderMasc)        -0.03      0.34    -0.70     0.62 1.00     2364     2936
+## cor(cGenderMasc,cVoiced:cGenderMasc)    -0.42      0.39    -0.94     0.51 1.00     1590     2233
+## 
+## Population-Level Effects: 
+##                              Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## Intercept                       49.40      1.76    45.92    52.74 1.01      825     1421
+## cVoiced                        -63.62      3.37   -70.08   -56.71 1.01      842     1103
+## cLangCMN                         2.87      3.51    -4.11     9.75 1.01      665     1433
+## cGenderMasc                     -3.52      2.15    -7.78     0.82 1.00     1093     1900
+## cVoiced:cLangCMN                 3.54      6.78   -10.11    16.97 1.01      700     1474
+## cVoiced:cGenderMasc             12.91      3.95     5.11    20.72 1.00     1202     1784
+## cLangCMN:cGenderMasc            -0.51      4.24    -9.01     7.44 1.00     1077     2290
+## cVoiced:cLangCMN:cGenderMasc    12.77      7.67    -1.91    28.15 1.00     1192     2189
+## 
+## Family Specific Parameters: 
+##       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sigma    13.92      0.26    13.41    14.45 1.00     5112     2717
+## 
+## Draws were sampled using sample(hmc). For each parameter, Bulk_ESS
+## and Tail_ESS are effective sample size measures, and Rhat is the potential
+## scale reduction factor on split chains (at convergence, Rhat = 1).
+```
+]
+
+.center[
+  ![](../images/last_model.png)
+]
+
+
+---
+# Hieararchical Models
+
+- We can now do the same things with the model as we did before
+
+
+
+```r
+hypothesis(bm_ex1_m1, "cLangCMN &gt; 0")
+```
+
+```
+## Hypothesis Tests for class b:
+##       Hypothesis Estimate Est.Error CI.Lower CI.Upper Evid.Ratio Post.Prob Star
+## 1 (cLangCMN) &gt; 0     2.87      3.51    -3.05     8.64       3.96       0.8     
+## ---
+## 'CI': 90%-CI for one-sided and 95%-CI for two-sided hypotheses.
+## '*': For one-sided hypotheses, the posterior probability exceeds 95%;
+## for two-sided hypotheses, the value tested against lies outside the 95%-CI.
+## Posterior probabilities of point hypotheses assume equal prior probabilities.
+```
+
+
+
+
+```r
+samples_bm_ex1_m1 &lt;- as_draws_df(bm_ex1_m1)
+with(samples_bm_ex1_m1, mean(b_cLangCMN &gt; 5 &amp; b_cLangCMN &lt; 10))
+```
+
+```
+## [1] 0.2515
+```
+
+---
+# Hieararchical Models
+
+.pull-left[
+
+
+```r
+# not using: b_Intercept, sigma, b_cVoiced
+p &lt;- bm_ex1_m1 %&gt;%
+      gather_draws(
+            b_cLangCMN, `b_cGenderMasc`, 
+           `b_cVoiced:cLangCMN`,
+           `b_cVoiced:cGenderMasc`, 
+           `b_cLangCMN:cGenderMasc`, 
+           `b_cVoiced:cLangCMN:cGenderMasc`) %&gt;%
+      ggplot(aes(.value, .variable)) + 
+      stat_pointinterval(.width = c(0.66, 0.95)) + 
+      facet_wrap(~(.variable == "b_cVoiced"), 
+                 ncol = 1, scales = "free") +
+      geom_vline(xintercept = 0, color="red",
+             linetype = "dotted")
+```
+]
+
+.pull-right[
+
+![](slides_2A_files/figure-html/unnamed-chunk-28-1.png)&lt;!-- --&gt;
+
+]
+
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightstyle": "arta",
+"highlightLines": true,
+"countIncrementalSlides": true,
+"ratio": "16:9"
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+// add `data-at-shortcutkeys` attribute to <body> to resolve conflicts with JAWS
+// screen reader (see PR #262)
+(function(d) {
+  let res = {};
+  d.querySelectorAll('.remark-help-content table tr').forEach(tr => {
+    const t = tr.querySelector('td:nth-child(2)').innerText;
+    tr.querySelectorAll('td:first-child .key').forEach(key => {
+      const k = key.innerText;
+      if (/^[a-z]$/.test(k)) res[k] = t;  // must be a single letter (key)
+    });
+  });
+  d.body.setAttribute('data-at-shortcutkeys', JSON.stringify(res));
+})(document);
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>

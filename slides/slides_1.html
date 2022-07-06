@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>Bayesian Methods in the Language Sciences</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Pavel Logačev" />
+    <meta name="date" content="2022-07-06" />
+    <script src="libs/header-attrs/header-attrs.js"></script>
+    <link href="libs/remark-css/uwm.css" rel="stylesheet" />
+    <link href="libs/remark-css/uwm-fonts.css" rel="stylesheet" />
+    <link href="libs/remark-css/hygge.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+.title[
+# Bayesian Methods in the Language Sciences
+]
+.subtitle[
+## Part 1
+]
+.author[
+### Pavel Logačev
+]
+.institute[
+### Boğaziçi University
+]
+.date[
+### 2022-07-06
+]
+
+---
+
+
+&lt;!--   
+highlightstyle
+[agate, androidstudio, arta, asceti, atelier-cave.dark, atelier-cave.light, atelier-dune.dark, atelier-dune.light, atelier-estuary.dark, atelier-estuary.light, atelier-forest.dark, atelier-forest.light, atelier-heath.dark, atelier-heath.light, atelier-lakeside.dark, atelier-lakeside.light, atelier-plateau.dark, atelier-plateau.light, atelier-savanna.dark, atelier-savanna.light, atelier-seaside.dark, atelier-seaside.light, atelier-sulphurpool.dark, atelier-sulphurpool.light, brown_paper, codepen-embed, color-brewer, dark, darkula, default, docco, far, foundation, github, github-gist, googlecode, grayscale, hopscotch, hybrid, idea, ir_black, kimbie.dark, kimbie.light, magula, mono-blue, monokai, monokai_sublime, obsidian, paraiso.dark, paraiso.light, pojoaque, railscast, rainbow, school_book, solarized_dark, solarized_light, styles_list.txt, sunburst, tomorrow, tomorrow-night-blue, tomorrow-night-bright, tomorrow-night, tomorrow-night-eightie, v, xcode, zenburn]
+
+
+css: [default, metropolis, metropolis-fonts]
+        css: ["uwm", "uwm-fonts"]
+ --&gt;
+ 
+&lt;!--
+Links/examples for slides:
+https://www.garrickadenbuie.com/blog/better-progressive-xaringan/
+--&gt;
+
+&lt;style type="text/css"&gt;
+  .title-slide {
+    background-image: url(https://raw.githubusercontent.com/ttuowang/Xaringan-wisconsin-theme/master/uwm-logo/color-flush-UWlogo-prin); 
+    background-position: 9% 15%;
+    background-size: 300px;
+    background-color: #fff;
+      padding-left: 100px;  /* delete this for 4:3 aspect ratio */
+  }
+&lt;/style&gt;
+
+&lt;style type="text/css"&gt;
+.bold-last-item &gt; ul &gt; li:last-of-type,
+.bold-last-item &gt; ol &gt; li:last-of-type {
+  font-weight: bold;
+}
+&lt;/style&gt;
+
+&lt;style type="text/css"&gt;
+.entry-content ul li {
+    margin-bottom: 0.5em;
+}
+&lt;/style&gt;
+
+&lt;style type="text/css"&gt;
+.show-only-last-code-result pre + pre:not(:last-of-type) code[class="remark-code"] {
+    display: none;
+}
+&lt;/style&gt;
+
+
+&lt;style type="text/css"&gt;
+
+.tiny .remark-code { /*Change made here*/
+  font-size: 750% !important;
+}
+&lt;/style&gt;
+
+
+
+
+
+
+
+
+
+# Scope
+
+
+.pull-left[
+
+### Prerequisites 
+
+- You know a little bit of `R`.
+- You know what t-tests and linear models are.
+- You have used `lme4` before.
+- You have heard of probability.
+
+### My Aim
+
+- Demonstrate a Bayesian analysis workflow using `brms`.
+- Demonstrate that Bayesian methods can do everything frequentist methods can do, and more.
+]
+
+
+.pull-right[
+
+### Topics (first session)
+
+- Introduction to Bayes
+- Fitting Bayesian model in `brms`
+- Hypothesis testing
+
+
+### Topics (second block)
+- Priors
+- Hierarchical models
+- Bayes Factors
+- A mixture model of intonation
+
+]
+
+&lt;!--
+
+- Setting up sensible priors
+- Bayesian linear mixed-effects models
+- ROPE, model comparison and hypothesis testing
+
+
+- Priors
+- Linear mixed-effects models
+- Model comparison
+- LOO
+- posterior predictive check
+- Bayes Factors (approximations and bridgesampling)
+- Why not just do a Chi^2 instead?
+
+- Use of hypothesis()
+
+--&gt;
+
+
+&lt;!--
+- multiple comparisons
+
+- example for using a posterior as prior 
+
+- power analysis?
+
+
+- Dealing with variable transformations (log transformations)
+- Interpretation of log coefficients as %
+- Estimation of parameters on the original scale
+- Transformation of log-odds to percentages, etc.
+- LMERs: Contrasts, and "offline recoding of contrasts"
+- Mixture models
+- Joint models (e.g., Marrying accuracy RTs?)
+--&gt;
+
+---
+
+
+
+# Philosophies of Statistical Inference
+
+
+&lt;!-- 
+.pull-left[.full-width[.content-box-white[
+]]] --&gt;
+
+.pull-left[
+## Frequentist Methods
+
+- The most popular framework is **Null Hypothesis Significance Testing (NHST)**
+
+&lt;!--
+- Amalgamation of Fisher's, Neyman's, and Pearson's ideas
+  - the p-value as indicator of the *'weirdness'* of data D under hypothesis H (Fisher)
+  - model comparison (Neyman-Pearson)
+--&gt;
+&lt;!--  4. Otherwise, try again --&gt;
+&lt;!--
+- We always know the Type-I error rate, but we rarely have an estimate of the Type-II error rate. --&gt;
+
+&lt;!--
+- Amalgamation of Fisher's, Neyman's, and Pearson's ideas
+--&gt;
+
+- Logic similar to *'proof by contradiction'*
+  1. Set up two hypotheses, `\(H_0\)` and `\(H_1\)`
+  2. Find out how *'weird'* the data is under `\(H_0\)`
+  3. If it is weird enough, reject `\(H_0\)`
+
+- Computationally simple and convenient
+
+- Interpretation of key statistics can be **tricky** (e.g., p-values and confidence intervals)
+
+- No prior information: every experiment is like the first. 
+
+]
+
+.pull-right[
+
+## Bayesian Methods
+
+- Provide continuous measures of relative evidence for models 
+
+- Computationally more intensive.
+
+- Requires specification of prior distributions.
+
+- Interpretation of key statistics is **intuitive**.
+
+- Logic is *'everything is relative'*:
+  - Formalize multiple competing theories, even if they differ only in `\(\theta\)`.
+  - Quantify the relative amount of evidence for each.
+
+]
+
+
+---
+
+
+
+# Avocado chairs
+
+- A furniture designer wants to know whether most people like avocado chairs.
+
+- They ask 10 people, and find that 7 people do like such chairs.
+
+- Do most people like such chairs? Is `\(\theta_{like} &gt; 0.5\)`?
+
+.center[
+  ![](../images/avocado_chair.png)
+]
+
+
+
+---
+
+
+
+# Avocado chairs
+
+- At least three ways to solve this hypothesis testing problem:
+
+1. **Frequentist hypothesis testing.** 
+  - Find out how **unexpected** these data would be if people didn't like avocado chairs.
+  - Decide that they must like them if that alternative is sufficiently unlikely. 
+  - Here: `\(\text{p-value}=.17\)`
+  
+2. **Bayesian hypothesis testing.** 
+  - Determine how likely it is that people like avocado chairs given these data. 
+  - Here: `\(P(\theta_{like} &gt; 0.5)=.87\)`.
+
+3. **Focus on estimation.** 
+  - Re-cast the problem as an estimation problem, because ... 
+      -  ... there isn't a substantial difference in implications between `\(\theta_{like}=.49\)` and `\(\theta_{like}=.51\)`
+      -  ... there is a major difference between `\(\theta_{like}=.51\)` and `\(\theta_{like}=.9\)`
+
+
+
+
+
+
+---
+
+# Avocado Chairs
+
+.pull-left[
+## Frequentist Test
+
+- One sided-test: Determine smallest value for the unexpectedness of the data under all `\(\theta_{like}\)` values compatible with `\(H_0\)`.
+- The unexpectedness of the data under `\(H_1\)` is not taken into account.
+
+
+
+]
+
+.pull-right[
+
+## Bayesian Test
+
+- Determine how likely it is that `\(\theta &gt; 0.5\)` relative to `\(\theta \leq 0.5\)`.
+
+]
+
+
+.pull-left[
+
+![](slides_1_files/figure-html/unnamed-chunk-9-1.png)&lt;!-- --&gt;
+
+]
+
+.pull-right[
+
+
+![](slides_1_files/figure-html/unnamed-chunk-10-1.png)&lt;!-- --&gt;
+
+]
+
+---
+
+# Frequentist Probability
+
+&lt;!-- to-do: improve formulations 'long-run frequency', 'repeatable' --&gt;
+- The frequentist notion of probability is **the long-run frequency** of an event.
+
+- Each event `\(A\)` is assumed to *have* a probability `\(P(A)\)` associated with, even if it is not known to us. For example: `\(P(\text{'a flight is on time'})\)`, `\(P(\text{'a cookie is tasty'})\)`
+
+- The probability of an event `\(A\)` may depend on another event `\(B\)`. This fact can be expressed using **conditional probabilities** `\(P(A|B)\)` or `\(P(A|not~B)\)`. For example, `\(P(\text{'a flight is on time'}|\text{'it is raining'})\)` or `\(P(\text{'a cookie is tasty'}|\text{'it is old'})\)`.
+
+- This concept of probability cannot be applied to **non-repeatable** events. We can talk about `\(P(\text{'a flight is on time'})\)` but not about `\(P(\text{'flight TK 1729 on 03.07.2022 is on time'})\)`.
+
+- Similarly, we can't talk about `\(P(Hypothesis~H)\)`, which is a problem if that is what you're interested in.
+
+- In consequence, frequentist methods need to adopt a discovery logic which doesn't make use of `\(P(Hypothesis~H)\)`.
+
+
+---
+
+# Bayesian Probability
+
+- In the Bayesian framework, probability doesn't represent a frequency, but a **degree of belief**.
+
+  - For example, we can talk about `\(P(\text{'human perception in domain X is categorical'})\)` or `\(P(\text{'the Eifel tower is in Paris'})\)`.
+
+- As a result, `\(P(\text{Hypothesis H})\)` is meaningful, and `\(P(\text{Hypothesis H}|\text{Data D})\)` can be used to quantify the relative amount of evidence a dataset `\(D\)` provides for hypothesis `\(H\)`.
+ 
+- `\(H\)` can be anything we can formalize and quantify: 
+    - The effect of height on income is positive.
+    - The effect of height on income is exactly `\(0\)`.
+    - The average VOT for voiced plosives in Mandarin is `\(80\,ms\)`.
+    - Asia Minor Greek speakers alternate between Turkish-like and Athenian Greek-like intonation patterns.
+
+---
+ 
+# Bayes Theorem
+
+
+- The Bayes Theorem is a neat way to calculate `\(P(H|D)\)` from `\(P(D|H)\)` and `\(P(H)\)`:
+
+.center[
+`\(\underbrace{ P(H|D) }_{ \text{posterior probability} } \propto \underbrace{ P(D|H) }_{ \text{likelihood} } \cdot \underbrace{ P(H) }_{\text{prior probability} }\)`
+]
+ 
+  - The **prior probability** is your (or an *'objective'* observer's) degree of belief in hypothesis `\(H\)` *prior* to seeing the data `\(D\)`
+  
+  - The **likelihood** tells us how likely data `\(D\)` would be if `\(H\)` were true. 
+  
+  - The **posterior probability** the degree of belief one should rationally assign to hypothesis `\(H\)` *after* to seeing the data `\(D\)`
+
+  - Because we are generally interested in the *relative* probability of hypotheses, the proportionality above is sufficient. 
+
+---
+
+
+# Likelihood and Posterior Probability | Back to Avocado Chairs
+
+.pull-left[
+
+- Remember that we had 7 *'like'* responses out of 10?
+
+- We could calculate the probability of that if we only knew the true proportion of people who like the chair.
+
+- We don't. So we just calculate it for many diifferent values.
+
+]
+
+.pull-right[
+
+![](slides_1_files/figure-html/unnamed-chunk-11-1.png)&lt;!-- --&gt;
+
+]
+
+
+.pull-left[
+
+- The **likelihood** values do not add up to `\(1\)`. 
+
+- According to the Bayes Theorem, the posterior probabilities of the different values of `\(\theta_{like}\)` are proportional to their likelihood if all parameter values are *a priori* equally likely.
+
+- Normalization converts the likelihood to **posterior probabilities** under a flat prior distribution.
+
+]
+
+.pull-right[
+
+
+![](slides_1_files/figure-html/unnamed-chunk-12-1.png)&lt;!-- --&gt;
+
+]
+
+
+
+---
+# Bayesian Modeling with `brms`
+
+
+---
+# Required Packages
+
+- Paul Bürkner's R package `brms` provides an `lme4`-like interface to Stan
+  - `brms`: https://paul-buerkner.github.io/brms
+  - Stan: https://mc-stan.org
+  
+- All analyses should be reproducible with the following packages.
+
+
+```r
+library(tidyverse) # data manipulation
+options(dplyr.summarise.inform = FALSE)
+
+library(magrittr) # pipes (%&gt;% / %&lt;&gt;%)
+library(readr) # for read_csv(), read_delim()
+
+library(cmdstanr) # R interface to Stan (mc-stan.org, for statistical modeling) [an alternative is 'rstan']
+library(brms) # lme4-like interface to Stan
+options(brms.backend = "cmdstanr")
+
+library(ggplot2) # plotting
+library(plotly) # sharper plots in html
+theme_set(theme_bw() + theme(legend.position="top"))
+
+library(posterior) # for working with posterior estimates
+library(bayesplot) # for plotting model estimates
+```
+
+&lt;!--
+library(bayesplot)
+library(tidybayes)
+library(brmstools)
+--&gt;
+
+
+---
+# VOT Data
+
+
+
+.pull-left[
+- VOT data from Mandarin and English stops used in the  
+[Vasishth et al. (2019)](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6124675)
+tutorial paper (originally from Li, 2013; Kong et al., 2012)
+
+- Only positive VOTs analyzed (for simplicity) 
+
+- Quite clearly, voiced stops have a shorter VOT than voiceless stops
+
+- But is there an interaction with gender?
+
+- Let's fit increasingly complex model to the Mandarin data till we reach
+
+
+$$
+VOT = a + b_1\cdot voicing +
+$$
+$$
+b_2\cdot gender +
+$$
+
+$$
+b_3\cdot (voicing \times gender)
+$$
+]
+
+
+.pull-right[
+
+
+
+![Boxplots of VOT.](slides_1_files/figure-html/unnamed-chunk-14-1.png)
+]
+
+
+---
+# Two Simple Models
+
+&lt;!-- to-do: refer to Shravan's and Laurel's papers on contrasts, as well as Laurel's video on them --&gt;
+
+- For starters, let's analyze the subject averages and see what happens?
+- See [Schad et al. (2020)](https://www.sciencedirect.com/science/article/pii/S0749596X19300695) and [Brehm &amp; Alday (2022)](https://pure.mpg.de/rest/items/item_3384534_1/component/file_3384535/content) for more on contrast coding, and watch Laurel's great [AMLaP talk](https://osf.io/jkpxt/wiki/home/) on that topic.
+
+
+
+```r
+# determine by-subject condition averages of msVOT
+ex1_avgs &lt;- ex1 %&gt;%  
+  group_by(lang, subject_lang, gender, voicing) %&gt;% # what to aggregate by
+  summarize( msVOT = mean(msVOT) ) # calculate the average VOT
+
+# translate factors to sum contrasts (centered contrasts simplify coefficient interpretation)
+ex1_avgs %&lt;&gt;% mutate(
+  cGenderMasc = gender %&gt;% recode("M" = +.5, "F" = -.5),
+  cVoiced = voicing %&gt;% recode("voiced" = +.5, "voiceless" = -.5),
+  cLangCMN = ifelse(lang == "CMN", +.5, -.5)
+)
+
+head(ex1_avgs) %&gt;% as.data.frame()
+```
+
+```
+##   lang subject_lang gender   voicing msVOT cGenderMasc cVoiced cLangCMN
+## 1  CMN      CMN-F01      F    voiced  18.1        -0.5     0.5      0.5
+## 2  CMN      CMN-F01      F voiceless  82.0        -0.5    -0.5      0.5
+## 3  CMN      CMN-F02      F    voiced  15.5        -0.5     0.5      0.5
+## 4  CMN      CMN-F02      F voiceless  86.7        -0.5    -0.5      0.5
+## 5  CMN      CMN-F03      F    voiced  18.7        -0.5     0.5      0.5
+## 6  CMN      CMN-F03      F voiceless  84.9        -0.5    -0.5      0.5
+```
+
+
+---
+# Two Simple Models
+
+- Let's fit a classical linear model to get a sense of what to expect.
+
+
+```r
+m_ex1_avg0 &lt;- lm( msVOT ~ 1 + cVoiced, # model specification
+                  data = ex1_avgs %&gt;% filter(lang == "CMN") # the data to use
+                )
+```
+
+
+```
+##                           2.5 %    97.5 %
+## (Intercept)  52.53194  49.67866  55.38523
+## cVoiced     -65.99611 -71.70268 -60.28954
+```
+
+- Now, let's fit a Bayesian equivalent of this model.
+
+
+```r
+bm_ex1_avg0 &lt;- brm( msVOT ~ 1 + cVoiced, # model specification
+                    data = ex1_avgs %&gt;% filter(lang == "CMN"), # the data to use
+                    file = "../workspace/bm_ex1_avg_m0") # file to save the model to (optional)
+```
+
+
+```
+##            Estimate Est.Error      Q2.5     Q97.5
+## Intercept  52.54990  1.462651  49.66496  55.39102
+## cVoiced   -66.07124  2.961780 -71.85030 -60.08290
+```
+
+---
+# A Look Inside the Two Models
+
+- The identical results are not coincidental: by default, `brms` tends to use flat priors -- i.e., all parameters are assumed to be equiprobable at first.
+
+- This means that the posterior distribution is essentially the likelihood.
+
+
+```r
+prior_summary(bm_ex1_avg0)
+```
+
+```
+##                     prior     class    coef group resp dpar nlpar lb ub       source
+##                    (flat)         b                                          default
+##                    (flat)         b cVoiced                             (vectorized)
+##  student_t(3, 47.2, 47.5) Intercept                                          default
+##     student_t(3, 0, 47.5)     sigma                                0         default
+```
+
+---
+# A Look Inside the Two Models | Estimation and Sampling
+
+.pull-left[
+
+- Let's take a look at the likelihood (on a logarithmic scale, because most values are very small) in the are around the estimates are very small.
+
+- The likelihood of a dataset given a model `\(M\)` and specific parameter values `\(\theta\)` is product of the likelihoods of all data points in it given `\(M\)` and `\(\theta\)`. 
+
+- When priors are flat, the posterior looks just like the likelihood. 
+
+]
+
+.pull-right[
+
+![](slides_1_files/figure-html/unnamed-chunk-21-1.png)&lt;!-- --&gt;
+]
+
+
+---
+# A Look Inside the Two Models | Estimation and Sampling
+
+.pull-left[
+
+### Frequentist Methods
+- Parameter estimation finds parameters associated with the highest likelihood of the data (**maximum-likelihood estimates**).
+
+- Use curvature at the MLE to calculate standard errors, thus CIs and p-values.
+
+]
+
+.pull-right[
+
+![](slides_1_files/figure-html/unnamed-chunk-22-1.png)&lt;!-- --&gt;
+]
+
+
+---
+# A Look Inside the Two Models | Estimation and Sampling
+
+.pull-left[
+### Bayesian Methods
+- Model fitting obtains **samples** of the parameter space via MCMC (Markov Chain Monte Carlo). 
+
+- The Stan **sampler** explores the posterior distribution by *'jumping around'* on the posterior distribution surface.
+
+- It is more likely to jump up (higher posterior probability) than down (lower posterior probability).
+
+- Samples from regions with a larger posterior probability are more likely.
+
+- The samples are therefore an approximation of the posterior distribution.
+]
+
+.pull-right[
+
+![](slides_1_files/figure-html/unnamed-chunk-23-1.png)&lt;!-- --&gt;
+]
+
+
+---
+# Model Diagnostics
+
+
+.pull-left[
+
+- By default, `brms` models run 4 *chains* with 2000 iterations, each starting at a random location.
+
+- If the sampler *converged* all 4 should have explored roughly the same space.
+
+- Traceplots that seem to form lines rather than being all over the place may reveal problems with the model.
+
+- Problems may occur when the model is overparameterized or predictors heavily correlated.
+
+]
+
+
+.pull-right[
+
+
+```r
+plot(bm_ex1_avg0)
+```
+
+![](slides_1_files/figure-html/unnamed-chunk-24-1.png)&lt;!-- --&gt;
+
+]
+
+---
+# Model Diagnostics
+
+- In addition to traceplots, `brms`/Stan provide two more diagnostics of healthy models
+  - **Rhat** of 1 indicates that all chains have ended up exploring the same space ($\frac{within-chain variance}{between-chain variance}$)
+  - **Bulk_ESS** and **Tail_ESS** the number *'effective samples'* and values significantly lower than the actual sample size indicate *mild problems*.
+
+
+```r
+summary( bm_ex1_avg0 )
+```
+
+```
+##  Family: gaussian 
+##   Links: mu = identity; sigma = identity 
+## Formula: msVOT ~ 1 + cVoiced 
+##    Data: ex1_avgs %&gt;% filter(lang == "CMN") (Number of observations: 40) 
+##   Draws: 4 chains, each with iter = 2000; warmup = 1000; thin = 1;
+##          total post-warmup draws = 4000
+## 
+## Population-Level Effects: 
+##           Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## Intercept    52.55      1.46    49.66    55.39 1.00     3736     2489
+## cVoiced     -66.07      2.96   -71.85   -60.08 1.00     3725     2792
+## 
+## Family Specific Parameters: 
+##       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sigma     9.25      1.10     7.37    11.76 1.00     3506     2530
+## 
+## Draws were sampled using sample(hmc). For each parameter, Bulk_ESS
+## and Tail_ESS are effective sample size measures, and Rhat is the potential
+## scale reduction factor on split chains (at convergence, Rhat = 1).
+```
+
+
+
+
+
+---
+# Working With Posterior Samples | Model 2
+
+- Let's fit a more interesting model now and see what we can learn from its posterior.
+- This model will take longer to fit.
+
+
+```r
+bm_ex1_avg1 &lt;- brm( msVOT ~ 1 + cVoiced*cLangCMN*cGenderMasc, # model specification
+                    data = ex1_avgs, # the data to use
+                    file = "../workspace/bm_ex1_avg_m1") # file to save the model to (optional)
+```
+
+- If all we need to know are the estimates and CIs, we can use `fixef()` on the model object.
+
+
+```r
+fixef( bm_ex1_avg1) %&gt;% round(2)
+```
+
+```
+##                              Estimate Est.Error   Q2.5  Q97.5
+## Intercept                       50.61      0.96  48.77  52.47
+## cVoiced                        -66.49      1.92 -70.24 -62.72
+## cLangCMN                         3.83      1.96  -0.13   7.73
+## cGenderMasc                     -3.80      1.94  -7.62   0.02
+## cVoiced:cLangCMN                 1.01      3.96  -6.81   8.95
+## cVoiced:cGenderMasc             12.84      3.87   5.16  20.20
+## cLangCMN:cGenderMasc            -0.24      3.84  -7.62   7.45
+## cVoiced:cLangCMN:cGenderMasc    13.13      7.67  -2.02  28.02
+```
+
+
+---
+# Working With Posterior Samples
+
+- But we can get much more out of the samples.
+
+
+```r
+samples_avg1 &lt;- as_draws_df( bm_ex1_avg1 )
+
+head(samples_avg1)
+```
+
+```
+## # A draws_df: 6 iterations, 1 chains, and 12 variables
+##   b_Intercept b_cVoiced b_cLangCMN b_cGenderMasc b_cVoiced:cLangCMN b_cVoiced:cGenderMasc b_cLangCMN:cGenderMasc
+## 1          50       -66        4.7          -3.5               3.98                  12.7                    3.6
+## 2          51       -68        1.1          -1.8               7.29                  11.9                    7.9
+## 3          51       -66        7.0          -7.4              -5.00                  13.1                   -7.5
+## 4          51       -66        1.1          -4.5              -0.19                  17.0                    1.2
+## 5          51       -70        1.8          -5.0              -3.78                   6.8                   -1.7
+## 6          51       -63        4.2          -4.9               5.57                  14.5                    3.3
+##   b_cVoiced:cLangCMN:cGenderMasc
+## 1                            9.2
+## 2                           11.9
+## 3                           17.0
+## 4                           12.3
+## 5                            9.5
+## 6                           13.1
+## # ... with 4 more variables
+## # ... hidden reserved variables {'.chain', '.iteration', '.draw'}
+```
+
+
+---
+# Working With Posterior Samples
+
+- Let's take a look at the samples we got.
+
+.pull-left[
+
+
+```r
+p &lt;- bm_ex1_avg1 %&gt;% 
+      gather_draws(sigma, b_Intercept, b_cVoiced, 
+            b_cLangCMN, `b_cGenderMasc`, 
+           `b_cVoiced:cLangCMN`,
+           `b_cVoiced:cGenderMasc`, 
+           `b_cLangCMN:cGenderMasc`, 
+           `b_cVoiced:cLangCMN:cGenderMasc`) %&gt;%
+      ggplot(aes(.value)) + geom_histogram() + 
+  facet_wrap(~.variable, scales = "free") + 
+  geom_vline(xintercept = 0, color="red",
+             linetype = "dotted")
+```
+]
+
+.pull-right[
+
+![](slides_1_files/figure-html/unnamed-chunk-30-1.png)&lt;!-- --&gt;
+
+]
+
+
+---
+# Working With Posterior Samples
+
+- But that was not an elegant way to visualize the results.
+- Estimates + CIs (66% &amp; 95%) are easier to grasp quickly.
+
+.pull-left[
+
+
+```r
+# not using: b_Intercept, sigma
+p &lt;- bm_ex1_avg1 %&gt;%
+      gather_draws(b_cVoiced) %&gt;%
+      ggplot(aes(.value, .variable)) + 
+      stat_pointinterval(.width = c(0.66, 0.95)) + 
+      geom_vline(xintercept = 0, color="red",
+             linetype = "dotted")
+```
+]
+
+.pull-right[
+
+![](slides_1_files/figure-html/unnamed-chunk-32-1.png)&lt;!-- --&gt;
+
+]
+
+
+---
+# Working With Posterior Samples
+
+- But that was not elegant way to visualize the results.
+- Estimates + CIs (66% &amp; 95%) are easier to grasp quickly.
+
+.pull-left[
+
+
+```r
+# not using: b_Intercept, sigma, b_cVoiced
+p &lt;- bm_ex1_avg1 %&gt;%
+      gather_draws(
+            b_cLangCMN, `b_cGenderMasc`, 
+           `b_cVoiced:cLangCMN`,
+           `b_cVoiced:cGenderMasc`, 
+           `b_cLangCMN:cGenderMasc`, 
+           `b_cVoiced:cLangCMN:cGenderMasc`) %&gt;%
+      ggplot(aes(.value, .variable)) + 
+      stat_pointinterval(.width = c(0.66, 0.95)) + 
+      facet_wrap(~(.variable == "b_cVoiced"), 
+                 ncol = 1, scales = "free") +
+      geom_vline(xintercept = 0, color="red",
+             linetype = "dotted")
+```
+]
+
+.pull-right[
+
+![](slides_1_files/figure-html/unnamed-chunk-34-1.png)&lt;!-- --&gt;
+
+]
+
+
+
+---
+# Working With Posterior Samples | Hypothesis Testing
+
+.pull-left[
+
+- We seem to have a main effect of language, with longer VOTs in Mandarin and a three-way interaction between voicing, language, and gender with somewhat uncertain estimates.
+- Let's quantify their posterior probabilities of being larger than `\(0\)`.
+- We can do it ourselves using the samples. 
+
+
+
+```r
+samples_avg1 &lt;- as_draws_df(bm_ex1_avg1)
+mean(samples_avg1$b_cLangCMN &gt; 0)
+```
+
+```
+## [1] 0.96975
+```
+
+
+```r
+mean(samples_avg1$`b_cVoiced:cLangCMN:cGenderMasc` &gt; 0)
+```
+
+```
+## [1] 0.95525
+```
+
+
+
+```r
+with(samples_avg1, mean(b_cLangCMN &gt; 5 &amp; b_cLangCMN &lt; 10))
+```
+
+```
+## [1] 0.2605
+```
+]
+
+.pull-right[
+
+![](slides_1_files/figure-html/unnamed-chunk-38-1.png)&lt;!-- --&gt;
+
+]
+
+---
+# Working With Posterior Samples | Hypothesis Testing
+
+- The same can be accomplished using `hypothesis()`.
+
+
+
+```r
+hypothesis(bm_ex1_avg1, "cLangCMN &gt; 0")
+```
+
+```
+## Hypothesis Tests for class b:
+##       Hypothesis Estimate Est.Error CI.Lower CI.Upper Evid.Ratio Post.Prob Star
+## 1 (cLangCMN) &gt; 0     3.83      1.96     0.55     7.06      32.06      0.97    *
+## ---
+## 'CI': 90%-CI for one-sided and 95%-CI for two-sided hypotheses.
+## '*': For one-sided hypotheses, the posterior probability exceeds 95%;
+## for two-sided hypotheses, the value tested against lies outside the 95%-CI.
+## Posterior probabilities of point hypotheses assume equal prior probabilities.
+```
+
+
+```r
+hypothesis(bm_ex1_avg1, "cVoiced:cLangCMN:cGenderMasc &gt; 0")
+```
+
+```
+## Hypothesis Tests for class b:
+##                 Hypothesis Estimate Est.Error CI.Lower CI.Upper Evid.Ratio Post.Prob Star
+## 1 (cVoiced:cLangCMN... &gt; 0    13.13      7.67     0.56    25.67      21.35      0.96    *
+## ---
+## 'CI': 90%-CI for one-sided and 95%-CI for two-sided hypotheses.
+## '*': For one-sided hypotheses, the posterior probability exceeds 95%;
+## for two-sided hypotheses, the value tested against lies outside the 95%-CI.
+## Posterior probabilities of point hypotheses assume equal prior probabilities.
+```
+
+
+---
+# Working With Posterior Samples | Hypothesis Testing
+
+- The same can be accomplished using `hypothesis()`.
+
+
+
+
+```r
+hypothesis(bm_ex1_avg1, "cLangCMN &gt; 1")
+```
+
+```
+## Hypothesis Tests for class b:
+##           Hypothesis Estimate Est.Error CI.Lower CI.Upper Evid.Ratio Post.Prob Star
+## 1 (cLangCMN)-(1) &gt; 0     2.83      1.96    -0.45     6.06      12.56      0.93     
+## ---
+## 'CI': 90%-CI for one-sided and 95%-CI for two-sided hypotheses.
+## '*': For one-sided hypotheses, the posterior probability exceeds 95%;
+## for two-sided hypotheses, the value tested against lies outside the 95%-CI.
+## Posterior probabilities of point hypotheses assume equal prior probabilities.
+```
+
+
+```r
+hypothesis(bm_ex1_avg1, "cVoiced:cLangCMN:cGenderMasc &lt; 15")
+```
+
+```
+## Hypothesis Tests for class b:
+##                 Hypothesis Estimate Est.Error CI.Lower CI.Upper Evid.Ratio Post.Prob Star
+## 1 (cVoiced:cLangCMN... &lt; 0    -1.87      7.67   -14.44    10.67       1.51       0.6     
+## ---
+## 'CI': 90%-CI for one-sided and 95%-CI for two-sided hypotheses.
+## '*': For one-sided hypotheses, the posterior probability exceeds 95%;
+## for two-sided hypotheses, the value tested against lies outside the 95%-CI.
+## Posterior probabilities of point hypotheses assume equal prior probabilities.
+```
+
+
+
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightstyle": "arta",
+"highlightLines": true,
+"countIncrementalSlides": true,
+"ratio": "16:9"
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+// add `data-at-shortcutkeys` attribute to <body> to resolve conflicts with JAWS
+// screen reader (see PR #262)
+(function(d) {
+  let res = {};
+  d.querySelectorAll('.remark-help-content table tr').forEach(tr => {
+    const t = tr.querySelector('td:nth-child(2)').innerText;
+    tr.querySelectorAll('td:first-child .key').forEach(key => {
+      const k = key.innerText;
+      if (/^[a-z]$/.test(k)) res[k] = t;  // must be a single letter (key)
+    });
+  });
+  d.body.setAttribute('data-at-shortcutkeys', JSON.stringify(res));
+})(document);
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>

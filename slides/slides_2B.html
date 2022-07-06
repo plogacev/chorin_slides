@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>Bayesian Methods in the Language Sciences</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Pavel Logačev" />
+    <meta name="date" content="2022-07-06" />
+    <script src="libs/header-attrs/header-attrs.js"></script>
+    <link href="libs/remark-css/uwm.css" rel="stylesheet" />
+    <link href="libs/remark-css/uwm-fonts.css" rel="stylesheet" />
+    <link href="libs/remark-css/hygge.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+.title[
+# Bayesian Methods in the Language Sciences
+]
+.subtitle[
+## Part 2B
+]
+.author[
+### Pavel Logačev
+]
+.institute[
+### Boğaziçi University
+]
+.date[
+### 2022-07-06
+]
+
+---
+
+
+&lt;style type="text/css"&gt;
+  .title-slide {
+    background-image: url(https://raw.githubusercontent.com/ttuowang/Xaringan-wisconsin-theme/master/uwm-logo/color-flush-UWlogo-prin); 
+    background-position: 9% 15%;
+    background-size: 300px;
+    background-color: #fff;
+      padding-left: 100px;  /* delete this for 4:3 aspect ratio */
+  }
+&lt;/style&gt;
+
+&lt;style type="text/css"&gt;
+.bold-last-item &gt; ul &gt; li:last-of-type,
+.bold-last-item &gt; ol &gt; li:last-of-type {
+  font-weight: bold;
+}
+&lt;/style&gt;
+
+&lt;style type="text/css"&gt;
+.entry-content ul li {
+    margin-bottom: 0.5em;
+}
+&lt;/style&gt;
+
+&lt;style type="text/css"&gt;
+.show-only-last-code-result pre + pre:not(:last-of-type) code[class="remark-code"] {
+    display: none;
+}
+&lt;/style&gt;
+
+&lt;!--
+&lt;style type="text/css"&gt;
+.remark-slide-content {
+  font-size: 28px;
+  padding: 20px 80px 20px 80px;
+}
+.remark-code, .remark-inline-code {
+  background: #f0f0f0;
+}
+.remark-code {
+  font-size: 24px;
+}
+.huge .remark-code { /*Change made here*/
+  font-size: 200% !important;
+}
+.tiny .remark-code { /*Change made here*/
+  font-size: 50% !important;
+}
+&lt;/style&gt;
+--&gt;
+
+&lt;style type="text/css"&gt;
+
+.tiny .remark-code { /*Change made here*/
+  font-size: 90% !important;
+}
+&lt;/style&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+```
+## Joining, by = "dialect"
+```
+
+# Mixture Model | Background
+
+- Baltazani, Przedlacka, Ünal, Logačev &amp; Coleman (under review). Intonation of Greek in contact with Turkish: a corpus-based diachronic study.
+
+- Speakers of Asia Minor Greek (AMG) was in close contact with Turkish until a two-way mass migration in the early 1920s.
+
+- Still spoken by communities in Greece.
+
+- How long do contact effects in intonation persist after contact has ceased?
+
+- We extracted `\(f_0\)` patterns from speech corpora for AMG, Greek, and Turkish and annotated `\(f_0\)` shape curves.
+
+---
+# Mixture Model | Background
+
+.pull-left[
+
+- Example `\(f_0\)` contour for a Turkish sentence. (Octave errors were corrected.)
+
+- We will focus on single parameter for this workshop, the *L tone alignment* `\(\tau\)`, which reflects the distance between the local minimum of the `\(f_0\)` curve and the last stressed vowel in the utterance.
+
+- `\(\tau\)` tends to be `\(0\)` in Athenian and *positive* in Turkish. 
+]
+
+.pull-right[
+![](../images/intonation.png)
+]
+
+
+---
+# Mixture Model | Data
+
+
+.pull-left[
+
+- Distribution of `\(\tau\)` for each utterance by dialect and generation. Dotted lines indicate medians of the Turkish and Athenian distributions.
+
+- The early AMG distributions looks quite bimodal, and appears to become more unimodal*-ish* with time.
+
+- But the peaks aren't **quite** where they are supposed to be. 
+
+- Can we quantify that intuition?
+]
+.pull-right[
+
+![](slides_2B_files/figure-html/unnamed-chunk-9-1.png)&lt;!-- --&gt;
+]
+
+
+---
+# Mixture Model | Hypothesis
+
+.pull-left[
+- AMG speakers' utterances are either Athenian-like or Turkish-like. 
+
+
+- The mixture proportion changes from generation to genderation. 
+
+- Not all mixtures look equally bimodal: Shapes of hypothetical mixture distibutions as a function of mixture proportion `\(\lambda\)` and distance between component modes.
+]
+
+
+.pull-right[
+![](slides_2B_files/figure-html/unnamed-chunk-10-1.png)&lt;!-- --&gt;
+]
+
+
+
+---
+# Mixture Model | Model Specification
+
+The simple part:
+
+- Each Athenian utterance `\(i\)` for speaker `\(s\)` comes from a normal distribution. 
+
+
+&lt;p align="center"&gt;
+`\(\tau_{s,i} \sim N(\mu_{A_s}, \sigma_{A})\text{, where }\mu_{A_s} = \mu_{A} + \Delta\mu_{s}\)`
+&lt;/p&gt;
+
+
+- Each Turkish utterance `\(i\)` for speaker `\(s\)` comes from a normal distribution.
+
+&lt;p align="center"&gt;
+`\(\tau_{s,i} \sim N(\mu_{T_s}, \sigma_{T})\text{, where }\mu_{T_s} = \mu_{T} + \Delta\mu_{s}\)`
+&lt;/p&gt;
+
+
+---
+# Mixture Model | Model Specification
+
+The interesting part:
+
+- Each speaker `\(s\)` of AMG has a Turkish-like register and an Athenian-like register in AMG.
+
+- Each AMG utterance `\(i\)` for speaker `\(s\)` comes from a mixture distribution:
+
+&lt;p align="center"&gt;
+    `\(\tau_i \sim N(\mu_{A_s}, \sigma_{A})\text{ with probability }\lambda\)`
+&lt;/p&gt;
+
+&lt;p align="center"&gt;
+    `\(\tau_i \sim N(\mu_{T_s}, \sigma_{T})\text{ with probability }1-\lambda\)`
+&lt;/p&gt;
+
+- Each AMG speaker's deviation from the register average is the same for both registers 
+
+&lt;p align="center"&gt;
+  `\(\mu_{T_s} - \mu_{T} = \mu_{A_s} - \mu_{A} =  \Delta\mu_{s}\)`
+&lt;/p&gt;
+    
+- The mixture weight `\(\lambda\)` varies by generation: `\(\lambda_1\)`, `\(\lambda_2\)`, `\(\lambda_3\)`, `\(\lambda_4\)`.
+
+
+
+
+---
+# Mixture Model | Model Structure
+
+- This specification requires a custom distribution for `brms` which we can define in Stan in three steps.
+  1. Define a likelihood function.
+  2. Declare it as a distribution.
+  3. Use it in brms.
+
+
+---
+# Mixture Model | Model Code
+
+
+```r
+stanvar_fn &lt;- stanvar(block = "functions", scode = "
+real shifted_gaussian_mixture_lpdf(real x, 
+                                   real mu1, real mu2, 
+                                   real sigma1, real sigma2, 
+                                   real theta, real shift, 
+                                   real group)
+{
+      real log_lik;
+  
+      if (group == -1) {
+        log_lik = normal_lpdf(x|mu1, sigma1);
+  
+      } else if (group == 1) {
+        log_lik = normal_lpdf(x|mu2, sigma2);
+  
+      } else if (group == 0) {
+        log_lik = log_mix(inv_logit(theta),
+                            normal_lpdf(x|mu1+shift, sigma1),
+                            normal_lpdf(x|mu2+shift, sigma2)
+                        );
+  
+      }
+      
+      return log_lik;
+}")
+```
+
+---
+# Mixture Model | Model Code
+
+
+```r
+shifted_gaussian_mixture &lt;- custom_family(
+  name = "shifted_gaussian_mixture", 
+  dpars = c("mu","muAlt", "sigma", "sigmaAlt", "lambda", "shift"),
+  links = c("identity","identity", "log", "log", "logit", "identity"),
+  lb = c(NA,NA,0,0,0,NA), 
+  ub = c(NA,NA,NA,NA,1,NA),
+  type = "real",
+  vars = c("vreal1[n]")
+)
+shifted_gaussian_mixture$dpars &lt;- c("mu", "mu2", "sigma1", "sigma2", "lambda", "shift")
+```
+
+---
+# Mixture Model | Model Code
+
+
+```r
+df_contr_generation &lt;- data.frame(generation = c("generation 1", "generation 2", "generation 3", "generation 4"),
+                                  cGen_2m1 = c(-3/4,  1/4,  1/4,  1/4),
+                                  cGen_3m2 = c(-2/4, -2/4,  2/4,  2/4),
+                                  cGen_4m3 = c(-1/4, -1/4, -1/4,  3/4))
+df_ex2_amg %&lt;&gt;% left_join( df_contr_generation )
+```
+
+
+```r
+# set group ids for Athenian (-1), AMG (0), Turkish (1) to be used in the mixture analysis 
+dialect_id &lt;- data.frame(dialect = c('Athenian','AMG','Turkish'), dialect_id=c(-1, 0, 1))
+df_ex2_amg %&lt;&gt;% left_join(dialect_id)
+```
+
+
+---
+# Mixture Model | Model Code
+
+
+
+
+```r
+# set up the model formula
+formula_mix &lt;- bf( tau|vreal(dialect_id) ~ 1, 
+                   mu2 ~ 1,
+                   sigma1 ~ 1,
+                   sigma2 ~ 1,
+                   lambda ~ 1 + cGen_2m1 + cGen_3m2 + cGen_4m3, 
+                   shift ~ 0 + (1|speaker)
+                  )
+
+# take a look at the default priors
+get_prior(formula_mix, family = shifted_gaussian_mixture, data = df_ex2_amg)
+```
+
+```
+##                     prior     class      coef   group resp   dpar nlpar lb ub       source
+##  student_t(3, -5.1, 22.1) Intercept                                                default
+##                    (flat)         b                        lambda                  default
+##                    (flat)         b  cGen_2m1              lambda             (vectorized)
+##                    (flat)         b  cGen_3m2              lambda             (vectorized)
+##                    (flat)         b  cGen_4m3              lambda             (vectorized)
+##                    (flat) Intercept                        lambda                  default
+##  student_t(3, -5.1, 22.1) Intercept                           mu2                  default
+##     student_t(3, 0, 22.1)        sd                         shift        0         default
+##     student_t(3, 0, 22.1)        sd           speaker       shift        0    (vectorized)
+##     student_t(3, 0, 22.1)        sd Intercept speaker       shift        0    (vectorized)
+##      student_t(3, 0, 2.5) Intercept                        sigma1                  default
+##      student_t(3, 0, 2.5) Intercept                        sigma2                  default
+```
+
+---
+# Mixture Model | Model Code
+
+
+```r
+prior_mu = 'normal(0, 10)'
+prior_sigma = 'normal(0, 10)' # effectively a half-normal; but 95% of the mass within 2 SDs of the mean (here: 0)
+prior_lambda = 'normal(0,2)'
+prior_delta_lambda = 'normal(0,2)'
+
+priors_mix &lt;- c(
+    set_prior(             class = 'Intercept', prior = prior_mu),
+    set_prior(dpar = 'mu2', class = 'Intercept', prior = prior_mu),
+    
+    set_prior(dpar  = 'sigma1', class = 'Intercept', prior = prior_sigma),
+    set_prior(dpar  = 'sigma2', class = 'Intercept', prior = prior_sigma),
+    
+    set_prior(dpar = 'lambda', class = 'Intercept', prior=prior_lambda),
+    set_prior(dpar = 'lambda', class = 'b', prior=prior_delta_lambda)
+)
+```
+
+
+---
+# Mixture Model | Model Code
+
+
+```r
+fit_mix &lt;- brm(formula_mix, 
+               prior = priors_mix, 
+               family = shifted_gaussian_mixture, 
+               stanvars = stanvar_fn, 
+               data = df_ex2_amg, 
+               iter = 2000, chains = 4, cores = 4, 
+               file = "../workspace/diachronic_mixture")
+```
+
+
+
+```r
+prior_summary(fit_mix)
+```
+
+```
+##                  prior     class      coef   group resp   dpar nlpar lb ub       source
+##            normal(0,2)         b                        lambda                     user
+##            normal(0,2)         b  cGen_2m1              lambda             (vectorized)
+##            normal(0,2)         b  cGen_3m2              lambda             (vectorized)
+##            normal(0,2)         b  cGen_4m3              lambda             (vectorized)
+##          normal(0, 10) Intercept                                                   user
+##            normal(0,2) Intercept                        lambda                     user
+##          normal(0, 10) Intercept                           mu2                     user
+##          normal(0, 10) Intercept                        sigma1                     user
+##          normal(0, 10) Intercept                        sigma2                     user
+##  student_t(3, 0, 22.1)        sd                         shift        0         default
+##  student_t(3, 0, 22.1)        sd           speaker       shift        0    (vectorized)
+##  student_t(3, 0, 22.1)        sd Intercept speaker       shift        0    (vectorized)
+```
+
+
+---
+# Mixture Model | Model Code
+
+.tiny[
+
+```r
+fit_mix
+```
+
+```
+##  Family: shifted_gaussian_mixture 
+##   Links: mu = identity; mu2 = identity; sigma1 = log; sigma2 = log; lambda = logit; shift = identity 
+## Formula: tau | vreal(dialect_id) ~ 1 
+##          mu2 ~ 1
+##          sigma1 ~ 1
+##          sigma2 ~ 1
+##          lambda ~ 1 + cGen_2m1 + cGen_3m2 + cGen_4m3
+##          shift ~ 0 + (1 | speaker)
+##    Data: df_ex2_amg (Number of observations: 2977) 
+##   Draws: 4 chains, each with iter = 2000; warmup = 1000; thin = 1;
+##          total post-warmup draws = 4000
+## 
+## Group-Level Effects: 
+## ~speaker (Number of levels: 127) 
+##                     Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sd(shift_Intercept)     7.59      1.32     5.37    10.47 1.01      735     1294
+## 
+## Population-Level Effects: 
+##                  Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## Intercept          -13.13      0.33   -13.77   -12.48 1.00     4477     3165
+## mu2_Intercept       17.62      0.40    16.82    18.40 1.00     5130     3164
+## sigma1_Intercept     2.30      0.02     2.26     2.34 1.00     3999     2790
+## sigma2_Intercept     2.55      0.02     2.50     2.59 1.00     5686     3388
+## lambda_Intercept    -0.06      0.68    -1.39     1.34 1.00     2928     2511
+## lambda_cGen_2m1      1.60      1.44    -1.11     4.49 1.00     3878     2985
+## lambda_cGen_3m2      3.17      1.21     1.11     5.88 1.00     2939     2578
+## lambda_cGen_4m3      2.47      1.38    -0.11     5.29 1.00     4034     2861
+## 
+## Draws were sampled using sample(hmc). For each parameter, Bulk_ESS
+## and Tail_ESS are effective sample size measures, and Rhat is the potential
+## scale reduction factor on split chains (at convergence, Rhat = 1).
+```
+]
+
+---
+# Mixture Model | Model Code
+
+
+```r
+ fit_mix %&gt;%
+      gather_draws(b_Intercept, b_mu2_Intercept) %&gt;%
+      ggplot(aes(.value, .variable)) + 
+      stat_pointinterval(.width = c(0.66, 0.95)) +
+      geom_vline(xintercept = 0, color="red",
+             linetype = "dotted")
+```
+
+![](slides_2B_files/figure-html/unnamed-chunk-21-1.png)&lt;!-- --&gt;
+
+
+
+---
+# Mixture Model | Model Code
+
+
+```r
+ fit_mix %&gt;%
+      gather_draws(b_sigma1_Intercept, b_sigma2_Intercept) %&gt;%
+      ggplot(aes(.value, .variable)) + 
+      stat_pointinterval(.width = c(0.66, 0.95))
+```
+
+![](slides_2B_files/figure-html/unnamed-chunk-22-1.png)&lt;!-- --&gt;
+
+
+---
+# Mixture Model | Model Code
+
+
+```r
+ fit_mix %&gt;%
+      gather_draws(b_lambda_Intercept, b_lambda_cGen_2m1, b_lambda_cGen_3m2, b_lambda_cGen_4m3) %&gt;%
+      ggplot(aes(.value, .variable)) + 
+      stat_pointinterval(.width = c(0.66, 0.95))
+```
+
+![](slides_2B_files/figure-html/unnamed-chunk-23-1.png)&lt;!-- --&gt;
+
+
+---
+# Mixture Model | Model Code
+
+
+```r
+samples_mix &lt;- as_draws_df( fit_mix )
+
+lambda_by_generation &lt;- 
+  sapply(1:nrow(df_contr_generation), function(i_row) {
+    
+    cur_samples &lt;- with(samples_mix, with(df_contr_generation[i_row,], { 
+      b_lambda_Intercept + cGen_2m1*b_lambda_cGen_2m1 + cGen_3m2*b_lambda_cGen_3m2 + cGen_4m3*b_lambda_cGen_4m3 
+    }))
+    
+    credible_interval &lt;- coda::HPDinterval(as.mcmc(cur_samples)) %&gt;% c(median(cur_samples))
+    names(credible_interval) &lt;- c("lower", "upper", "median")
+    
+    plogis( credible_interval )
+
+  })
+lambda_by_generation %&lt;&gt;% t() %&gt;% as.data.frame()
+lambda_by_generation %&lt;&gt;% cbind( df_contr_generation, . )
+lambda_by_generation$generation %&lt;&gt;% factor(., levels = rev(.))
+```
+
+---
+# Mixture Model | Model Code
+
+
+```r
+ggplot(lambda_by_generation, aes(median, generation)) + 
+  geom_point() + geom_errorbarh(aes(xmin = lower, xmax = upper), height = .05) + 
+  theme_bw() + ylab(NULL) + xlab("Estimate")
+```
+
+![](slides_2B_files/figure-html/unnamed-chunk-25-1.png)&lt;!-- --&gt;
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightstyle": "arta",
+"highlightLines": true,
+"countIncrementalSlides": true,
+"ratio": "16:9"
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+// add `data-at-shortcutkeys` attribute to <body> to resolve conflicts with JAWS
+// screen reader (see PR #262)
+(function(d) {
+  let res = {};
+  d.querySelectorAll('.remark-help-content table tr').forEach(tr => {
+    const t = tr.querySelector('td:nth-child(2)').innerText;
+    tr.querySelectorAll('td:first-child .key').forEach(key => {
+      const k = key.innerText;
+      if (/^[a-z]$/.test(k)) res[k] = t;  // must be a single letter (key)
+    });
+  });
+  d.body.setAttribute('data-at-shortcutkeys', JSON.stringify(res));
+})(document);
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
