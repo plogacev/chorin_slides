@@ -1,0 +1,8 @@
+/* Add image and change bg color */
+  .title-slide {
+    background-image: url(https://raw.githubusercontent.com/ttuowang/Xaringan-wisconsin-theme/master/uwm-logo/color-flush-UWlogo-prin); 
+    background-position: 9% 15%;
+    background-size: 300px;
+    background-color: #fff;
+      padding-left: 100px;  /* delete this for 4:3 aspect ratio */
+  }

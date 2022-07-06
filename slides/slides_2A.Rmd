@@ -1,0 +1,452 @@
+---
+title: "Bayesian Methods in the Language Sciences"
+subtitle: "Part 2A"
+author: "Pavel Logačev"
+institute: "Boğaziçi University"
+date: "2022-07-06"
+output:
+  xaringan::moon_reader:
+    lib_dir: libs
+    css: ["uwm", "uwm-fonts", "hygge"]
+    nature:
+      highlightstyle: arta
+      highlightLines: true
+      countIncrementalSlides: true
+      ratio: "16:9"
+---
+
+<!--   
+highlightstyle
+[agate, androidstudio, arta, asceti, atelier-cave.dark, atelier-cave.light, atelier-dune.dark, atelier-dune.light, atelier-estuary.dark, atelier-estuary.light, atelier-forest.dark, atelier-forest.light, atelier-heath.dark, atelier-heath.light, atelier-lakeside.dark, atelier-lakeside.light, atelier-plateau.dark, atelier-plateau.light, atelier-savanna.dark, atelier-savanna.light, atelier-seaside.dark, atelier-seaside.light, atelier-sulphurpool.dark, atelier-sulphurpool.light, brown_paper, codepen-embed, color-brewer, dark, darkula, default, docco, far, foundation, github, github-gist, googlecode, grayscale, hopscotch, hybrid, idea, ir_black, kimbie.dark, kimbie.light, magula, mono-blue, monokai, monokai_sublime, obsidian, paraiso.dark, paraiso.light, pojoaque, railscast, rainbow, school_book, solarized_dark, solarized_light, styles_list.txt, sunburst, tomorrow, tomorrow-night-blue, tomorrow-night-bright, tomorrow-night, tomorrow-night-eightie, v, xcode, zenburn]
+
+
+css: [default, metropolis, metropolis-fonts]
+        css: ["uwm", "uwm-fonts"]
+ -->
+ 
+<!--
+Links/examples for slides:
+https://www.garrickadenbuie.com/blog/better-progressive-xaringan/
+-->
+
+```{css echo=FALSE}
+  .title-slide {
+    background-image: url(https://raw.githubusercontent.com/ttuowang/Xaringan-wisconsin-theme/master/uwm-logo/color-flush-UWlogo-prin); 
+    background-position: 9% 15%;
+    background-size: 300px;
+    background-color: #fff;
+      padding-left: 100px;  /* delete this for 4:3 aspect ratio */
+  }
+```
+
+```{css echo=FALSE}
+.bold-last-item > ul > li:last-of-type,
+.bold-last-item > ol > li:last-of-type {
+  font-weight: bold;
+}
+```
+
+```{css echo=FALSE}
+.entry-content ul li {
+    margin-bottom: 0.5em;
+}
+```
+
+```{css echo=FALSE}
+.show-only-last-code-result pre + pre:not(:last-of-type) code[class="remark-code"] {
+    display: none;
+}
+```
+
+```{css, echo = FALSE}
+
+.tiny .remark-code { /*Change made here*/
+  font-size: 750% !important;
+}
+```
+
+
+
+```{r setup, include=FALSE}
+options(
+  htmltools.dir.version  = FALSE,
+  htmltools.preserve.raw = FALSE # needed for windows
+)
+```
+
+
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+library(knitr)
+source("../src/packages.r")
+opts_chunk$set(cache=F, fig.retina = 1)
+```
+
+
+
+```{r global_packages, echo=TRUE, results='hide', echo=FALSE}
+library(tidyverse) # data manipulation
+options(dplyr.summarise.inform = FALSE)
+
+library(magrittr) # pipes (%>% / %<>%)
+library(readr) # for read_csv(), read_delim()
+
+library(cmdstanr) # R interface to Stan (mc-stan.org, for statistical modeling) [an alternative is 'rstan']
+library(brms) # lme4-like interface to Stan
+options(brms.backend = "cmdstanr")
+
+library(ggplot2) # plotting
+library(plotly) # sharper plots in html
+theme_set(theme_bw() + theme(legend.position="top"))
+
+```
+
+<!--
+library(bayesplot)
+library(tidybayes)
+library(brmstools)
+-->
+
+
+```{r ex1_load, echo=FALSE, results='hide', warning=FALSE, message=FALSE, echo=FALSE}
+
+en_voiceless <- c("kh", "kjh", "kwh", "th", "twh")
+mandarin_voiceless <- c("t", "k")
+
+ex1EN <- read_delim("../data_pt1/JoP/data/english.txt", guess = 10^6)
+ex1EN %<>% group_by(subject) %>% mutate(avg_vot = mean(msVOT, na.rm = T)) %>% ungroup()
+ex1EN %<>% arrange(avg_vot)
+
+ex1EN %<>% mutate(voicing = ifelse(TargetConsonant %in% en_voiceless, "voiceless", "voiced"),
+                  gender = stringr::str_to_upper(gender),
+                  msVOT = round(msVOT),
+                  msVowel = round(msVowel) )
+ex1EN %<>% group_by(gender) %>%
+           mutate(subject_id = as.factor(rank(avg_vot)) %>% as.integer,
+                  subject = sprintf("%s%02d", gender, subject_id) )
+ex1EN %<>% mutate( lang = "EN", 
+                   subject_lang = paste(lang, subject, sep = "-") )
+ex1EN %<>% select(lang, gender, subject_lang, subject, world_bet=WorldBet, voicing, consonant = TargetConsonant, vowel = TargetVowel, msVOT, msVowel)
+
+ex1M <- read_delim("../data_pt1/JoP/data/songyuan.txt", guess = 10^6)
+ex1M %<>% group_by(subject) %>% mutate(avg_vot = mean(msVOT, na.rm = T)) %>% ungroup()
+ex1M %<>% mutate(voicing = ifelse(TargetConsonant %in% mandarin_voiceless, "voiceless", "voiced"),
+                 gender = stringr::str_to_upper(gender),
+                 msVOT = round(msVOT),
+                 msVowel = round(msVowel) )
+ex1M %<>% group_by(gender) %>%
+           mutate(subject_id = as.factor(rank(avg_vot)) %>% as.integer,
+                  subject = sprintf("%s%02d", gender, subject_id) )
+ex1M %<>% mutate( lang = "CMN", 
+                  subject_lang = paste(lang, subject, sep = "-") )
+ex1M %<>% select(lang, gender, subject_lang, subject, world_bet=WorldBet, voicing, consonant = TargetConsonant, vowel = TargetVowel, msVOT, msVowel)
+
+ex1 <- bind_rows( ex1EN, ex1M )
+
+ex1 %<>% filter(msVOT > 0)
+
+```
+
+
+```{r echo = FALSE}
+# determine by-subject condition averages of msVOT
+ex1_avgs <- ex1 %>%  
+  group_by(lang, subject_lang, gender, voicing) %>% # what to aggregate by
+  summarize( msVOT = mean(msVOT) ) # calculate the average VOT
+
+# translate factors to sum contrasts (centered contrasts simplify coefficient interpretation)
+ex1_avgs %<>% mutate(
+  cGenderMasc = gender %>% recode("M" = +.5, "F" = -.5),
+  cVoiced = voicing %>% recode("voiced" = +.5, "voiceless" = -.5),
+  cLangCMN = ifelse(lang == "CMN", +.5, -.5)
+)
+
+```
+
+```{r echo=FALSE}
+bm_ex1_avg0 <- brm( msVOT ~ 1 + cVoiced, # model specification
+                    data = ex1_avgs %>% filter(lang == "CMN"), # the data to use
+                    file = "../workspace/bm_ex1_avg_m0") # file to save the model to (optional)
+```
+
+```{r echo=FALSE}
+bm_ex1_avg1 <- brm( msVOT ~ 1 + cVoiced*cLangCMN*cGenderMasc, # model specification
+                    data = ex1_avgs, # the data to use
+                    file = "../workspace/bm_ex1_avg_m1") # file to save the model to (optional)
+```
+
+
+
+---
+# Priors | Proper and Improper
+- Until now, we have ignored the prior distributions and used the default `brms` priors.
+- Those are flat for all nearly all parameters.
+
+
+```{r echo=FALSE}
+options(width = 300)
+```
+
+```{r echo=T}
+prior_summary(bm_ex1_avg1)
+```
+
+---
+# Priors | Proper and Improper
+
+- Such priors behave **like** uniform distributions, but they are **not** probability distributions.
+
+- In order for the area of the prior to add up to $1$ over the interval $(-\infty; +\infty)$, its value would need to be $0$ everywhere.
+
+- Using a flat prior is equivalent to using a uniform prior over a very wide interval.
+
+- They are called **improper priors**.
+
+```{r echo=F, fig.height=3}
+p1 <- data.frame(x=seq(-1.2, 1.2, .1)) %>% ggplot(aes(x)) + stat_function(fun = function(x) dunif(x, -1, 1)) + scale_y_continuous(NULL, limits = c(0, .5)) + scale_x_continuous(NULL)
+p2 <- data.frame(x=seq(-6, 6, .1)) %>% ggplot(aes(x)) + stat_function(fun = function(x) dunif(x, -5, 5)) + scale_y_continuous(NULL, limits = c(0, .5)) + scale_x_continuous(NULL)
+p3 <- data.frame(x=seq(-12, 12, .1)) %>% ggplot(aes(x)) + stat_function(fun = function(x) dunif(x, -10, 10)) + scale_y_continuous(NULL, limits = c(0, .5)) + scale_x_continuous(NULL)
+
+ggpubr::ggarrange(p1, p2, p3, ncol = 3)
+```
+
+
+---
+# Priors | Default Priors
+
+.pull-left[
+- In a linear model, `brms` places by default
+  - **Weakly informative priors** on the intercept parameter
+  - **Weakly informative priors** on the $\sigma$ parameter
+  - **Uninformative (improper) priors** on slope parameters 
+  
+- Such priors often do not reflect our true knowledge of the situation
+  - Weakly informative priors for the **intercept** and **$\sigma$** seem OK to someone with my knowledge of VOT, but maybe not to a phonetician.
+  - Uninformative priors on intercepts imply that VOT difference between languages could amount to several minutes, or even weeks! - That can't be right.
+]
+
+.pull-right[
+```{r echo=FALSE}
+
+  p1 <- ggplot(data.frame(), aes(y = 0, dist = "student_t", arg1 = 3, arg2 = 0, arg3 = 46.1, color = "x")) +
+        stat_slab(p_limits = c(.01, .99), fill = "pink") + facet_wrap(~"sigma") + theme(legend.position = "none") +
+        scale_y_continuous(breaks = NULL) + ylab("probability density") + xlab(NULL)
+  p1 <- p1 + geom_rect(xmin=-Inf, xmax=0, ymin=-Inf, ymax=Inf, color = "white", fill = "white")
+
+  p2 <- ggplot(data.frame(), aes(y = 0, dist = "student_t", arg1 = 3, arg2 = 44.7, arg3 = 46.1, color = "x", fill = "x")) +
+        stat_slab(p_limits = c(.01, .99), fill = "pink") + facet_wrap(~"intercept")  + theme(legend.position = "none") +
+        scale_y_continuous(breaks = NULL) + ylab("probability density") + xlab(NULL)
+
+  p3 <- ggplot(data.frame(), aes(y = 0, dist = "unif", arg1 = -1000, arg2 = 1000, color = "x")) +
+        stat_slab(p_limits = c(.01, .99), fill = "pink") + facet_wrap(~"slopes")  + theme(legend.position = "none") +
+        scale_y_continuous(breaks = NULL, limits = c(0,5)) + ylab("probability density") + xlab(NULL)
+
+  prior <- ggpubr::ggarrange(p1, p2, p3, ncol = 3) 
+  prior
+```
+]
+
+---
+# Priors | So how do you choose priors?
+
+- At a minimum, your priors should reflect the measurement scale and some prior knowledge of the phenomenon. For example:
+  - the intercept (average VOT) will likely be between 0 and 200
+  - the effect of voicing will be between $-150ms$ and $-50ms$
+  - the effects of other predictors will be between $-80ms$ and $-80ms$
+  - $\sigma$ is unlikely to be larger than $100\,ms$ 
+  
+- The normal distribution has the convenient property that 95% of the probability mass is within the interval $\pm 2\cdot SD$ of the mean.
+
+- We can select the prior such that the most likely range reflects the 95% interval around the mean ($\pm 2\cdot SD$), or 65% ( $\pm 1\cdot SD$ ) if you want to be conservative.
+
+```{r echo=T}
+priors_vot <- 
+c( prior( class = 'Intercept', prior = normal(100, 50)),
+   prior( class = 'b', coef = "cVoiced", prior = normal(100, 25)),
+   prior( class = 'b', prior = normal(0, 40)),
+   prior( class = 'sigma', prior = normal(0, 40))
+)
+```
+
+
+---
+# Priors | How much do priors matter?
+
+- Let's refit the last model with these prior and check how much they even matter.
+
+```{r }
+bm_ex1_avg1B <- brm( msVOT ~ 1 + cVoiced*cLangCMN*cGenderMasc, # model specification
+                    data = ex1_avgs, # the data to use
+                    prior = priors_vot, # the priors
+                    file = "../workspace/bm_ex1_avg_m1B") # file to save the model to (optional)
+```
+
+- It turns out that the priors don't even matter all that much for the **estimates** of particular model.
+- This is because they are much flatter than the likelihood.  
+
+.pull-left[
+```{r echo=T}
+fixef(bm_ex1_avg1) %>% round(0) %>% .[,-2]
+```
+]
+
+.pull-right[
+```{r echo=T}
+fixef(bm_ex1_avg1B) %>% round(0) %>% .[,-2]
+```
+]
+
+---
+# Hypothesis Testing II | Bayes Factors
+
+
+---
+# Hypothesis Testing II | Bayes Factors
+
+- The Bayes Factor is the posterior odds of two models $M_1$ and $M_2$ given the data: $BF_{12}$ = $\frac{P(M_1|D)}{P(M_2|D)}$.
+
+- Often interpreted as the **relative evidence** for $M_1$.
+
+- `hypothesis()` can also perform the Savage-Dickey approximation to the Bayes Factor for nested models.
+
+- It exploits the fact that the ratio of posterior odds for two nested models $\frac{P(M_1|D)}{P(M_2|D)}$ can be approximated by the ratio between its prior and its posterior. 
+
+- But we will need to refit the model yet again.
+
+```{r echo=T}
+hypothesis(bm_ex1_avg1B, "cGenderMasc = 0")
+```
+
+---
+# Hypothesis Testing II | Bayes Factors
+
+- Let's refit the model to include samples from the prior.
+
+```{r }
+bm_ex1_avg1C <- brm( msVOT ~ 1 + cVoiced*cLangCMN*cGenderMasc, # model specification
+                    data = ex1_avgs, # the data to use
+                    prior = priors_vot, # the priors
+                    sample_prior = "yes", # keep samples from the prior
+                    file = "../workspace/bm_ex1_avg_m1C") # file to save the model to (optional)
+```
+
+- The Bayes Factor suggests that a model with a main effect of gender set to $0$ has in fact a higher posterior probability than a model where that effect is assumed to be between  $-80ms$ and $-80ms$ (as per the prior).
+```{r echo=T}
+hypothesis(bm_ex1_avg1C, "cGenderMasc = 0")
+```
+
+
+---
+# Hypothesis Testing II | Bayes Factors
+
+- I recommend [Heck et al. (in press)](https://psyarxiv.com/cu43g) and [Nicenboim, Schad, and Vasishth (2022)](https://vasishth.github.io/bayescogsci/book/) for more details on Bayes Factors.
+
+
+---
+# Hieararchical Models
+
+- So far, we have fitted models to subject averages to keep things simple.
+
+$$
+VOT = a + b_1\cdot voicing + b_2\cdot gender + b_3\cdot (voicing \times gender) + \ldots
+$$
+- But let's review the actual data:
+```{r echo=T}
+head(ex1) %>% head()
+```
+
+
+
+
+---
+# Hieararchical Models
+
+- A more appropriate model structure would contain adjustments for subjects and items.
+
+$VOT = (a + a_S + a_I) + (b_1 + b_{1,S})\cdot voicing +(b_2 + b_{2,I})\cdot gender +(b_3)\cdot (voicing \times gender) + \ldots$
+
+
+```{r echo=FALSE}
+# translate factors to sum contrasts (centered contrasts simplify coefficient interpretation)
+ex1 %<>% mutate(
+  cGenderMasc = gender %>% recode("M" = +.5, "F" = -.5),
+  cVoiced = voicing %>% recode("voiced" = +.5, "voiceless" = -.5),
+  cLangCMN = ifelse(lang == "CMN", +.5, -.5)
+)
+```
+
+```{r }
+bm_ex1_m1 <- brm( msVOT ~ 1 + cVoiced*cLangCMN*cGenderMasc + (cVoiced + 1|subject_lang) + (cVoiced*cGenderMasc|world_bet), # maximal model specification
+                    data = ex1, # the data to use
+                    prior = priors_vot, # the priors
+                    chains = 4, # number of chains to run 
+                    cores = 4, # number of cores to use 
+                    iter = 2000, # total number of iterations
+                    sample_prior = "yes", # keep samples from the prior
+                    file = "../workspace/bm_ex1_m1") # file to save the model to (optional)
+```
+
+
+---
+# Hieararchical Models
+
+.tiny[
+```{r }
+summary(bm_ex1_m1)
+```
+]
+
+.center[
+  ![](../images/last_model.png)
+]
+
+
+---
+# Hieararchical Models
+
+- We can now do the same things with the model as we did before
+
+
+```{r message=FALSE, warning=FALSE}
+hypothesis(bm_ex1_m1, "cLangCMN > 0")
+```
+
+
+
+```{r message=FALSE, warning=FALSE}
+samples_bm_ex1_m1 <- as_draws_df(bm_ex1_m1)
+with(samples_bm_ex1_m1, mean(b_cLangCMN > 5 & b_cLangCMN < 10))
+```
+
+---
+# Hieararchical Models
+
+.pull-left[
+
+```{r message=FALSE, warning=FALSE}
+# not using: b_Intercept, sigma, b_cVoiced
+p <- bm_ex1_m1 %>%
+      gather_draws(
+            b_cLangCMN, `b_cGenderMasc`, 
+           `b_cVoiced:cLangCMN`,
+           `b_cVoiced:cGenderMasc`, 
+           `b_cLangCMN:cGenderMasc`, 
+           `b_cVoiced:cLangCMN:cGenderMasc`) %>%
+      ggplot(aes(.value, .variable)) + 
+      stat_pointinterval(.width = c(0.66, 0.95)) + 
+      facet_wrap(~(.variable == "b_cVoiced"), 
+                 ncol = 1, scales = "free") +
+      geom_vline(xintercept = 0, color="red",
+             linetype = "dotted")
+
+```
+]
+
+.pull-right[
+
+```{r message=FALSE, warning=FALSE, echo=FALSE, fig.height=4}
+p
+```
+
+]
+

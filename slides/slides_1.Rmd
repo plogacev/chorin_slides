@@ -1,0 +1,974 @@
+---
+title: "Bayesian Methods in the Language Sciences"
+subtitle: "Part 1"
+author: "Pavel Logačev"
+institute: "Boğaziçi University"
+date: "2022-07-06"
+output:
+  xaringan::moon_reader:
+    lib_dir: libs
+    css: ["uwm", "uwm-fonts", "hygge"]
+    nature:
+      highlightstyle: arta
+      highlightLines: true
+      countIncrementalSlides: true
+      ratio: "16:9"
+---
+
+<!--   
+highlightstyle
+[agate, androidstudio, arta, asceti, atelier-cave.dark, atelier-cave.light, atelier-dune.dark, atelier-dune.light, atelier-estuary.dark, atelier-estuary.light, atelier-forest.dark, atelier-forest.light, atelier-heath.dark, atelier-heath.light, atelier-lakeside.dark, atelier-lakeside.light, atelier-plateau.dark, atelier-plateau.light, atelier-savanna.dark, atelier-savanna.light, atelier-seaside.dark, atelier-seaside.light, atelier-sulphurpool.dark, atelier-sulphurpool.light, brown_paper, codepen-embed, color-brewer, dark, darkula, default, docco, far, foundation, github, github-gist, googlecode, grayscale, hopscotch, hybrid, idea, ir_black, kimbie.dark, kimbie.light, magula, mono-blue, monokai, monokai_sublime, obsidian, paraiso.dark, paraiso.light, pojoaque, railscast, rainbow, school_book, solarized_dark, solarized_light, styles_list.txt, sunburst, tomorrow, tomorrow-night-blue, tomorrow-night-bright, tomorrow-night, tomorrow-night-eightie, v, xcode, zenburn]
+
+
+css: [default, metropolis, metropolis-fonts]
+        css: ["uwm", "uwm-fonts"]
+ -->
+ 
+<!--
+Links/examples for slides:
+https://www.garrickadenbuie.com/blog/better-progressive-xaringan/
+-->
+
+```{css echo=FALSE}
+  .title-slide {
+    background-image: url(https://raw.githubusercontent.com/ttuowang/Xaringan-wisconsin-theme/master/uwm-logo/color-flush-UWlogo-prin); 
+    background-position: 9% 15%;
+    background-size: 300px;
+    background-color: #fff;
+      padding-left: 100px;  /* delete this for 4:3 aspect ratio */
+  }
+```
+
+```{css echo=FALSE}
+.bold-last-item > ul > li:last-of-type,
+.bold-last-item > ol > li:last-of-type {
+  font-weight: bold;
+}
+```
+
+```{css echo=FALSE}
+.entry-content ul li {
+    margin-bottom: 0.5em;
+}
+```
+
+```{css echo=FALSE}
+.show-only-last-code-result pre + pre:not(:last-of-type) code[class="remark-code"] {
+    display: none;
+}
+```
+
+
+```{css, echo = FALSE}
+
+.tiny .remark-code { /*Change made here*/
+  font-size: 750% !important;
+}
+```
+
+
+```{r setup, include=FALSE}
+options(
+  htmltools.dir.version  = FALSE,
+  htmltools.preserve.raw = FALSE # needed for windows
+)
+```
+
+
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+library(knitr)
+source("../src/packages.r")
+opts_chunk$set(cache=F)
+
+options(width = 120)
+
+```
+
+
+# Scope
+
+
+.pull-left[
+
+### Prerequisites 
+
+- You know a little bit of `R`.
+- You know what t-tests and linear models are.
+- You have used `lme4` before.
+- You have heard of probability.
+
+### My Aim
+
+- Demonstrate a Bayesian analysis workflow using `brms`.
+- Demonstrate that Bayesian methods can do everything frequentist methods can do, and more.
+]
+
+
+.pull-right[
+
+### Topics (first session)
+
+- Introduction to Bayes
+- Fitting Bayesian model in `brms`
+- Hypothesis testing
+
+
+### Topics (second block)
+- Priors
+- Hierarchical models
+- Bayes Factors
+- A mixture model of intonation
+
+]
+
+<!--
+
+- Setting up sensible priors
+- Bayesian linear mixed-effects models
+- ROPE, model comparison and hypothesis testing
+
+
+- Priors
+- Linear mixed-effects models
+- Model comparison
+- LOO
+- posterior predictive check
+- Bayes Factors (approximations and bridgesampling)
+- Why not just do a Chi^2 instead?
+
+- Use of hypothesis()
+
+-->
+
+
+<!--
+- multiple comparisons
+
+- example for using a posterior as prior 
+
+- power analysis?
+
+
+- Dealing with variable transformations (log transformations)
+- Interpretation of log coefficients as %
+- Estimation of parameters on the original scale
+- Transformation of log-odds to percentages, etc.
+- LMERs: Contrasts, and "offline recoding of contrasts"
+- Mixture models
+- Joint models (e.g., Marrying accuracy RTs?)
+-->
+
+---
+
+
+
+# Philosophies of Statistical Inference
+
+
+<!-- 
+.pull-left[.full-width[.content-box-white[
+]]] -->
+
+.pull-left[
+## Frequentist Methods
+
+- The most popular framework is **Null Hypothesis Significance Testing (NHST)**
+
+<!--
+- Amalgamation of Fisher's, Neyman's, and Pearson's ideas
+  - the p-value as indicator of the *'weirdness'* of data D under hypothesis H (Fisher)
+  - model comparison (Neyman-Pearson)
+-->
+<!--  4. Otherwise, try again -->
+<!--
+- We always know the Type-I error rate, but we rarely have an estimate of the Type-II error rate. -->
+
+<!--
+- Amalgamation of Fisher's, Neyman's, and Pearson's ideas
+-->
+
+- Logic similar to *'proof by contradiction'*
+  1. Set up two hypotheses, $H_0$ and $H_1$
+  2. Find out how *'weird'* the data is under $H_0$
+  3. If it is weird enough, reject $H_0$
+
+- Computationally simple and convenient
+
+- Interpretation of key statistics can be **tricky** (e.g., p-values and confidence intervals)
+
+- No prior information: every experiment is like the first. 
+
+]
+
+.pull-right[
+
+## Bayesian Methods
+
+- Provide continuous measures of relative evidence for models 
+
+- Computationally more intensive.
+
+- Requires specification of prior distributions.
+
+- Interpretation of key statistics is **intuitive**.
+
+- Logic is *'everything is relative'*:
+  - Formalize multiple competing theories, even if they differ only in $\theta$.
+  - Quantify the relative amount of evidence for each.
+
+]
+
+
+---
+
+
+
+# Avocado chairs
+
+- A furniture designer wants to know whether most people like avocado chairs.
+
+- They ask 10 people, and find that 7 people do like such chairs.
+
+- Do most people like such chairs? Is $\theta_{like} > 0.5$?
+
+.center[
+  ![](../images/avocado_chair.png)
+]
+
+
+
+---
+
+
+
+# Avocado chairs
+
+- At least three ways to solve this hypothesis testing problem:
+
+1. **Frequentist hypothesis testing.** 
+  - Find out how **unexpected** these data would be if people didn't like avocado chairs.
+  - Decide that they must like them if that alternative is sufficiently unlikely. 
+  - Here: $\text{p-value}=.17$
+  
+2. **Bayesian hypothesis testing.** 
+  - Determine how likely it is that people like avocado chairs given these data. 
+  - Here: $P(\theta_{like} > 0.5)=.87$.
+
+3. **Focus on estimation.** 
+  - Re-cast the problem as an estimation problem, because ... 
+      -  ... there isn't a substantial difference in implications between $\theta_{like}=.49$ and $\theta_{like}=.51$
+      -  ... there is a major difference between $\theta_{like}=.51$ and $\theta_{like}=.9$
+
+```{r echo=FALSE, results='hide'}
+avocado <- data.frame(N=10, z=7)
+with(avocado, binom.test(z, N, p = 0.5, alternative = "greater"))$p.value
+```
+
+```{r echo=FALSE, results='hide'}
+# following Kruschke, p. 132
+with(avocado, pbeta(q=.5, z+1, N-z+1, lower.tail = F))
+```
+
+
+---
+
+# Avocado Chairs
+
+.pull-left[
+## Frequentist Test
+
+- One sided-test: Determine smallest value for the unexpectedness of the data under all $\theta_{like}$ values compatible with $H_0$.
+- The unexpectedness of the data under $H_1$ is not taken into account.
+
+
+
+]
+
+.pull-right[
+
+## Bayesian Test
+
+- Determine how likely it is that $\theta > 0.5$ relative to $\theta \leq 0.5$.
+
+]
+
+
+.pull-left[
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.height=3}
+freq_theta_grid <- seq(0, .5, .025)
+freq_pval <- with(avocado, sapply(freq_theta_grid, function(theta) 
+      binom.test(z, N, p = theta, alternative = "greater")$p.value))
+
+p1 <- data.frame(theta=freq_theta_grid, pval=freq_pval) %>%
+  ggplot(aes(theta, pval)) + geom_bar(stat="identity", width = .01) +
+  facet_wrap(~"P(7 or more 'like' responses out of 10 | specific theta)") +
+  scale_x_continuous(limits = c(0, 1)) + 
+  geom_rect(xmin=0, xmax=.505, ymin = -Inf, ymax = Inf, fill = "turquoise", alpha = .025) +
+  geom_rect(xmin=.505, xmax=1, ymin = -Inf, ymax = Inf, fill = "red", alpha = .025)
+# 
+# p <- ggpubr::ggarrange(p1, NULL, p1, ncol = 1)
+# 
+# p +  geom_curve(x=1, xend=2, y=1, yend=2,
+#                    curvature = -0.1, 
+#                    arrow = arrow(type="closed",length = unit(0.25,"cm")))
+
+print(p1)
+```
+
+]
+
+.pull-right[
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.height=3}
+
+bayes_theta_grid <- seq(0, 1, .025)
+bayes_p <- with(avocado, sapply(bayes_theta_grid, function(theta) 
+                dbinom(z, N, prob = theta) ))
+bayes_p <- bayes_p/sum(bayes_p)
+
+
+data.frame(theta=bayes_theta_grid, pval=bayes_p) %>%
+  ggplot(aes(theta, pval)) + geom_bar(stat="identity", width = .01) +
+  facet_wrap(~"P(specific theta | 7 'like' responses out of 10 )") +
+  geom_rect(xmin=0, xmax=.505, ymin = -Inf, ymax = Inf, fill = "turquoise", alpha = .025) +
+  geom_rect(xmin=.505, xmax=1, ymin = -Inf, ymax = Inf, fill = "red", alpha = .025)
+
+```
+
+]
+
+---
+
+# Frequentist Probability
+
+<!-- to-do: improve formulations 'long-run frequency', 'repeatable' -->
+- The frequentist notion of probability is **the long-run frequency** of an event.
+
+- Each event $A$ is assumed to *have* a probability $P(A)$ associated with, even if it is not known to us. For example: $P(\text{'a flight is on time'})$, $P(\text{'a cookie is tasty'})$
+
+- The probability of an event $A$ may depend on another event $B$. This fact can be expressed using **conditional probabilities** $P(A|B)$ or $P(A|not~B)$. For example, $P(\text{'a flight is on time'}|\text{'it is raining'})$ or $P(\text{'a cookie is tasty'}|\text{'it is old'})$.
+
+- This concept of probability cannot be applied to **non-repeatable** events. We can talk about $P(\text{'a flight is on time'})$ but not about $P(\text{'flight TK 1729 on 03.07.2022 is on time'})$.
+
+- Similarly, we can't talk about $P(Hypothesis~H)$, which is a problem if that is what you're interested in.
+
+- In consequence, frequentist methods need to adopt a discovery logic which doesn't make use of $P(Hypothesis~H)$.
+
+
+---
+
+# Bayesian Probability
+
+- In the Bayesian framework, probability doesn't represent a frequency, but a **degree of belief**.
+
+  - For example, we can talk about $P(\text{'human perception in domain X is categorical'})$ or $P(\text{'the Eifel tower is in Paris'})$.
+
+- As a result, $P(\text{Hypothesis H})$ is meaningful, and $P(\text{Hypothesis H}|\text{Data D})$ can be used to quantify the relative amount of evidence a dataset $D$ provides for hypothesis $H$.
+ 
+- $H$ can be anything we can formalize and quantify: 
+    - The effect of height on income is positive.
+    - The effect of height on income is exactly $0$.
+    - The average VOT for voiced plosives in Mandarin is $80\,ms$.
+    - Asia Minor Greek speakers alternate between Turkish-like and Athenian Greek-like intonation patterns.
+
+---
+ 
+# Bayes Theorem
+
+
+- The Bayes Theorem is a neat way to calculate $P(H|D)$ from $P(D|H)$ and $P(H)$:
+
+.center[
+$\underbrace{ P(H|D) }_{ \text{posterior probability} } \propto \underbrace{ P(D|H) }_{ \text{likelihood} } \cdot \underbrace{ P(H) }_{\text{prior probability} }$
+]
+ 
+  - The **prior probability** is your (or an *'objective'* observer's) degree of belief in hypothesis $H$ *prior* to seeing the data $D$
+  
+  - The **likelihood** tells us how likely data $D$ would be if $H$ were true. 
+  
+  - The **posterior probability** the degree of belief one should rationally assign to hypothesis $H$ *after* to seeing the data $D$
+
+  - Because we are generally interested in the *relative* probability of hypotheses, the proportionality above is sufficient. 
+
+---
+
+
+# Likelihood and Posterior Probability | Back to Avocado Chairs
+
+.pull-left[
+
+- Remember that we had 7 *'like'* responses out of 10?
+
+- We could calculate the probability of that if we only knew the true proportion of people who like the chair.
+
+- We don't. So we just calculate it for many diifferent values.
+
+]
+
+.pull-right[
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.height=3}
+
+bayes_theta_grid <- seq(0, 1, .025)
+bayes_lik <- with(avocado, sapply(bayes_theta_grid, function(theta) 
+                dbinom(z, N, prob = theta) ))
+
+
+data.frame(theta=bayes_theta_grid, pval=bayes_lik) %>%
+  ggplot(aes(theta, pval)) + geom_bar(stat="identity", width = .01) +
+  facet_wrap(~"P(7 'like' responses out of 10 | specific theta)") +
+  ylab("Likelihood")
+  
+
+```
+
+]
+
+
+.pull-left[
+
+- The **likelihood** values do not add up to $1$. 
+
+- According to the Bayes Theorem, the posterior probabilities of the different values of $\theta_{like}$ are proportional to their likelihood if all parameter values are *a priori* equally likely.
+
+- Normalization converts the likelihood to **posterior probabilities** under a flat prior distribution.
+
+]
+
+.pull-right[
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.height=3}
+
+bayes_p <- bayes_lik/sum(bayes_lik)
+
+data.frame(theta=bayes_theta_grid, pval=bayes_p) %>%
+  ggplot(aes(theta, pval)) + geom_bar(stat="identity", width = .01) +
+  facet_wrap(~"P(specific theta | 7 'like' responses out of 10 )") +
+  ylab("Posterior Probability")
+  
+```
+
+]
+
+
+
+---
+# Bayesian Modeling with `brms`
+
+
+---
+# Required Packages
+
+- Paul Bürkner's R package `brms` provides an `lme4`-like interface to Stan
+  - `brms`: https://paul-buerkner.github.io/brms
+  - Stan: https://mc-stan.org
+  
+- All analyses should be reproducible with the following packages.
+
+```{r global_packages, echo=TRUE, results='hide'}
+library(tidyverse) # data manipulation
+options(dplyr.summarise.inform = FALSE)
+
+library(magrittr) # pipes (%>% / %<>%)
+library(readr) # for read_csv(), read_delim()
+
+library(cmdstanr) # R interface to Stan (mc-stan.org, for statistical modeling) [an alternative is 'rstan']
+library(brms) # lme4-like interface to Stan
+options(brms.backend = "cmdstanr")
+
+library(ggplot2) # plotting
+library(plotly) # sharper plots in html
+theme_set(theme_bw() + theme(legend.position="top"))
+
+library(posterior) # for working with posterior estimates
+library(bayesplot) # for plotting model estimates
+
+```
+
+<!--
+library(bayesplot)
+library(tidybayes)
+library(brmstools)
+-->
+
+
+---
+# VOT Data
+
+```{r ex1_load, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+
+en_voiceless <- c("kh", "kjh", "kwh", "th", "twh")
+mandarin_voiceless <- c("t", "k")
+
+ex1EN <- read_delim("../data_pt1/JoP/data/english.txt", guess = 10^6)
+ex1EN %<>% group_by(subject) %>% mutate(avg_vot = mean(msVOT, na.rm = T)) %>% ungroup()
+ex1EN %<>% arrange(avg_vot)
+
+ex1EN %<>% mutate(voicing = ifelse(TargetConsonant %in% en_voiceless, "voiceless", "voiced"),
+                  gender = stringr::str_to_upper(gender),
+                  msVOT = round(msVOT),
+                  msVowel = round(msVowel) )
+ex1EN %<>% group_by(gender) %>%
+           mutate(subject_id = as.factor(rank(avg_vot)) %>% as.integer,
+                  subject = sprintf("%s%02d", gender, subject_id) )
+ex1EN %<>% mutate( lang = "EN", 
+                   subject_lang = paste(lang, subject, sep = "-") )
+ex1EN %<>% select(lang, gender, subject_lang, subject, world_bet=WorldBet, voicing, consonant = TargetConsonant, vowel = TargetVowel, msVOT, msVowel)
+
+ex1M <- read_delim("../data_pt1/JoP/data/songyuan.txt", guess = 10^6)
+ex1M %<>% group_by(subject) %>% mutate(avg_vot = mean(msVOT, na.rm = T)) %>% ungroup()
+ex1M %<>% mutate(voicing = ifelse(TargetConsonant %in% mandarin_voiceless, "voiceless", "voiced"),
+                 gender = stringr::str_to_upper(gender),
+                 msVOT = round(msVOT),
+                 msVowel = round(msVowel) )
+ex1M %<>% group_by(gender) %>%
+           mutate(subject_id = as.factor(rank(avg_vot)) %>% as.integer,
+                  subject = sprintf("%s%02d", gender, subject_id) )
+ex1M %<>% mutate( lang = "CMN", 
+                  subject_lang = paste(lang, subject, sep = "-") )
+ex1M %<>% select(lang, gender, subject_lang, subject, world_bet=WorldBet, voicing, consonant = TargetConsonant, vowel = TargetVowel, msVOT, msVowel)
+
+ex1 <- bind_rows( ex1EN, ex1M )
+
+ex1 %<>% filter(msVOT > 0)
+
+```
+
+.pull-left[
+- VOT data from Mandarin and English stops used in the  
+[Vasishth et al. (2019)](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6124675)
+tutorial paper (originally from Li, 2013; Kong et al., 2012)
+
+- Only positive VOTs analyzed (for simplicity) 
+
+- Quite clearly, voiced stops have a shorter VOT than voiceless stops
+
+- But is there an interaction with gender?
+
+- Let's fit increasingly complex model to the Mandarin data till we reach
+
+
+$$
+VOT = a + b_1\cdot voicing +
+$$
+$$
+b_2\cdot gender +
+$$
+
+$$
+b_3\cdot (voicing \times gender)
+$$
+]
+
+
+.pull-right[
+```{r echo=F, results='hide'}
+
+p <- ex1 %>% filter(msVOT > 0) %>% ggplot(aes(subject, msVOT, color = voicing)) + 
+  geom_boxplot() + facet_grid(lang~gender, scales = "free") + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.75, hjust=1))
+```
+
+
+```{r echo=F, fig.cap="Boxplots of VOT."}
+print( p )
+```
+]
+
+
+---
+# Two Simple Models
+
+<!-- to-do: refer to Shravan's and Laurel's papers on contrasts, as well as Laurel's video on them -->
+
+- For starters, let's analyze the subject averages and see what happens?
+- See [Schad et al. (2020)](https://www.sciencedirect.com/science/article/pii/S0749596X19300695) and [Brehm & Alday (2022)](https://pure.mpg.de/rest/items/item_3384534_1/component/file_3384535/content) for more on contrast coding, and watch Laurel's great [AMLaP talk](https://osf.io/jkpxt/wiki/home/) on that topic.
+
+
+```{r }
+# determine by-subject condition averages of msVOT
+ex1_avgs <- ex1 %>%  
+  group_by(lang, subject_lang, gender, voicing) %>% # what to aggregate by
+  summarize( msVOT = mean(msVOT) ) # calculate the average VOT
+
+# translate factors to sum contrasts (centered contrasts simplify coefficient interpretation)
+ex1_avgs %<>% mutate(
+  cGenderMasc = gender %>% recode("M" = +.5, "F" = -.5),
+  cVoiced = voicing %>% recode("voiced" = +.5, "voiceless" = -.5),
+  cLangCMN = ifelse(lang == "CMN", +.5, -.5)
+)
+
+head(ex1_avgs) %>% as.data.frame()
+```
+
+
+---
+# Two Simple Models
+
+- Let's fit a classical linear model to get a sense of what to expect.
+
+```{r }
+m_ex1_avg0 <- lm( msVOT ~ 1 + cVoiced, # model specification
+                  data = ex1_avgs %>% filter(lang == "CMN") # the data to use
+                )
+```
+
+```{r echo=FALSE}
+m_ex1_avg0 %>% {cbind(coef(.), confint(.))} # display estimates and confidence intervals
+```
+
+- Now, let's fit a Bayesian equivalent of this model.
+
+```{r }
+bm_ex1_avg0 <- brm( msVOT ~ 1 + cVoiced, # model specification
+                    data = ex1_avgs %>% filter(lang == "CMN"), # the data to use
+                    file = "../workspace/bm_ex1_avg_m0") # file to save the model to (optional)
+```
+
+```{r echo=FALSE}
+fixef(bm_ex1_avg0) # display estimates and credible intervals
+```
+
+---
+# A Look Inside the Two Models
+
+- The identical results are not coincidental: by default, `brms` tends to use flat priors -- i.e., all parameters are assumed to be equiprobable at first.
+
+- This means that the posterior distribution is essentially the likelihood.
+
+```{r }
+prior_summary(bm_ex1_avg0)
+```
+
+---
+# A Look Inside the Two Models | Estimation and Sampling
+
+.pull-left[
+
+- Let's take a look at the likelihood (on a logarithmic scale, because most values are very small) in the are around the estimates are very small.
+
+- The likelihood of a dataset given a model $M$ and specific parameter values $\theta$ is product of the likelihoods of all data points in it given $M$ and $\theta$. 
+
+- When priors are flat, the posterior looks just like the likelihood. 
+
+]
+
+.pull-right[
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+
+library(scatterplot3d)
+
+cur_df <- ex1_avgs %>% filter(lang == "CMN") %>% ungroup() %>% select(cVoiced, msVOT)
+
+log_lik <- function(intercept, slope, sigma = 9) {
+    y_pred <- with(cur_df, intercept + slope*cVoiced)
+    log_lik <- dnorm(cur_df$msVOT, mean = y_pred, sd = sigma, log = T)
+    sum(log_lik)
+}
+
+grid_width = .5
+grid <- expand.grid(intercept = seq(30, 80, grid_width), slope = seq(-100, -40, grid_width)) %>% as.data.frame()
+log_likelihood <- sapply(1:nrow(grid), function(i) { log_lik(grid$intercept[i], grid$slope[i]) })
+
+intercept = grid$intercept
+slope_voiced = grid$slope
+scatterplot3d(intercept, slope_voiced, log_likelihood, highlight.3d = TRUE, angle = 130, col.axis = "blue", 
+              col.grid = "lightblue", cex.axis = 1.3, cex.lab = 1.1, main = "(Log-)Likelihood", pch = 20)
+
+```
+]
+
+
+---
+# A Look Inside the Two Models | Estimation and Sampling
+
+.pull-left[
+
+### Frequentist Methods
+- Parameter estimation finds parameters associated with the highest likelihood of the data (**maximum-likelihood estimates**).
+
+- Use curvature at the MLE to calculate standard errors, thus CIs and p-values.
+
+]
+
+.pull-right[
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+
+scatterplot3d(intercept, slope_voiced, log_likelihood, highlight.3d = TRUE, angle = 130, col.axis = "blue", 
+              col.grid = "lightblue", cex.axis = 1.3, cex.lab = 1.1, main = "(Log-)Likelihood", pch = 20)
+
+```
+]
+
+
+---
+# A Look Inside the Two Models | Estimation and Sampling
+
+.pull-left[
+### Bayesian Methods
+- Model fitting obtains **samples** of the parameter space via MCMC (Markov Chain Monte Carlo). 
+
+- The Stan **sampler** explores the posterior distribution by *'jumping around'* on the posterior distribution surface.
+
+- It is more likely to jump up (higher posterior probability) than down (lower posterior probability).
+
+- Samples from regions with a larger posterior probability are more likely.
+
+- The samples are therefore an approximation of the posterior distribution.
+]
+
+.pull-right[
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+
+scatterplot3d(intercept, slope_voiced, log_likelihood, highlight.3d = TRUE, angle = 130, col.axis = "blue", 
+              col.grid = "lightblue", cex.axis = 1.3, cex.lab = 1.1, main = "(Log-)Likelihood", pch = 20)
+
+```
+]
+
+
+---
+# Model Diagnostics
+
+
+.pull-left[
+
+- By default, `brms` models run 4 *chains* with 2000 iterations, each starting at a random location.
+
+- If the sampler *converged* all 4 should have explored roughly the same space.
+
+- Traceplots that seem to form lines rather than being all over the place may reveal problems with the model.
+
+- Problems may occur when the model is overparameterized or predictors heavily correlated.
+
+]
+
+
+.pull-right[
+
+```{r fig.height=6}
+plot(bm_ex1_avg0)
+```
+
+]
+
+---
+# Model Diagnostics
+
+- In addition to traceplots, `brms`/Stan provide two more diagnostics of healthy models
+  - **Rhat** of 1 indicates that all chains have ended up exploring the same space ($\frac{within-chain variance}{between-chain variance}$)
+  - **Bulk_ESS** and **Tail_ESS** the number *'effective samples'* and values significantly lower than the actual sample size indicate *mild problems*.
+
+```{r size=5}
+
+summary( bm_ex1_avg0 )
+
+
+```
+
+
+
+
+
+---
+# Working With Posterior Samples | Model 2
+
+- Let's fit a more interesting model now and see what we can learn from its posterior.
+- This model will take longer to fit.
+
+```{r }
+bm_ex1_avg1 <- brm( msVOT ~ 1 + cVoiced*cLangCMN*cGenderMasc, # model specification
+                    data = ex1_avgs, # the data to use
+                    file = "../workspace/bm_ex1_avg_m1") # file to save the model to (optional)
+```
+
+- If all we need to know are the estimates and CIs, we can use `fixef()` on the model object.
+
+```{r }
+fixef( bm_ex1_avg1) %>% round(2)
+```
+
+
+---
+# Working With Posterior Samples
+
+- But we can get much more out of the samples.
+
+```{r }
+samples_avg1 <- as_draws_df( bm_ex1_avg1 )
+
+head(samples_avg1)
+```
+
+
+---
+# Working With Posterior Samples
+
+- Let's take a look at the samples we got.
+
+.pull-left[
+
+```{r message=FALSE, warning=FALSE}
+p <- bm_ex1_avg1 %>% 
+      gather_draws(sigma, b_Intercept, b_cVoiced, 
+            b_cLangCMN, `b_cGenderMasc`, 
+           `b_cVoiced:cLangCMN`,
+           `b_cVoiced:cGenderMasc`, 
+           `b_cLangCMN:cGenderMasc`, 
+           `b_cVoiced:cLangCMN:cGenderMasc`) %>%
+      ggplot(aes(.value)) + geom_histogram() + 
+  facet_wrap(~.variable, scales = "free") + 
+  geom_vline(xintercept = 0, color="red",
+             linetype = "dotted")
+```
+]
+
+.pull-right[
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+p
+```
+
+]
+
+
+---
+# Working With Posterior Samples
+
+- But that was not an elegant way to visualize the results.
+- Estimates + CIs (66% & 95%) are easier to grasp quickly.
+
+.pull-left[
+
+```{r message=FALSE, warning=FALSE}
+# not using: b_Intercept, sigma
+p <- bm_ex1_avg1 %>%
+      gather_draws(b_cVoiced) %>%
+      ggplot(aes(.value, .variable)) + 
+      stat_pointinterval(.width = c(0.66, 0.95)) + 
+      geom_vline(xintercept = 0, color="red",
+             linetype = "dotted")
+
+```
+]
+
+.pull-right[
+
+```{r message=FALSE, warning=FALSE, echo=FALSE, fig.height=2}
+p
+```
+
+]
+
+
+---
+# Working With Posterior Samples
+
+- But that was not elegant way to visualize the results.
+- Estimates + CIs (66% & 95%) are easier to grasp quickly.
+
+.pull-left[
+
+```{r message=FALSE, warning=FALSE}
+# not using: b_Intercept, sigma, b_cVoiced
+p <- bm_ex1_avg1 %>%
+      gather_draws(
+            b_cLangCMN, `b_cGenderMasc`, 
+           `b_cVoiced:cLangCMN`,
+           `b_cVoiced:cGenderMasc`, 
+           `b_cLangCMN:cGenderMasc`, 
+           `b_cVoiced:cLangCMN:cGenderMasc`) %>%
+      ggplot(aes(.value, .variable)) + 
+      stat_pointinterval(.width = c(0.66, 0.95)) + 
+      facet_wrap(~(.variable == "b_cVoiced"), 
+                 ncol = 1, scales = "free") +
+      geom_vline(xintercept = 0, color="red",
+             linetype = "dotted")
+
+```
+]
+
+.pull-right[
+
+```{r message=FALSE, warning=FALSE, echo=FALSE, fig.height=4}
+p
+```
+
+]
+
+
+
+---
+# Working With Posterior Samples | Hypothesis Testing
+
+.pull-left[
+
+- We seem to have a main effect of language, with longer VOTs in Mandarin and a three-way interaction between voicing, language, and gender with somewhat uncertain estimates.
+- Let's quantify their posterior probabilities of being larger than $0$.
+- We can do it ourselves using the samples. 
+
+
+```{r message=FALSE, warning=FALSE}
+samples_avg1 <- as_draws_df(bm_ex1_avg1)
+mean(samples_avg1$b_cLangCMN > 0)
+```
+
+```{r message=FALSE, warning=FALSE}
+mean(samples_avg1$`b_cVoiced:cLangCMN:cGenderMasc` > 0)
+```
+
+
+```{r message=FALSE, warning=FALSE}
+with(samples_avg1, mean(b_cLangCMN > 5 & b_cLangCMN < 10))
+```
+]
+
+.pull-right[
+
+```{r message=FALSE, warning=FALSE, echo=FALSE, fig.height=4}
+p
+```
+
+]
+
+---
+# Working With Posterior Samples | Hypothesis Testing
+
+- The same can be accomplished using `hypothesis()`.
+
+
+```{r message=FALSE, warning=FALSE}
+hypothesis(bm_ex1_avg1, "cLangCMN > 0")
+```
+
+```{r message=FALSE, warning=FALSE}
+hypothesis(bm_ex1_avg1, "cVoiced:cLangCMN:cGenderMasc > 0")
+```
+
+
+---
+# Working With Posterior Samples | Hypothesis Testing
+
+- The same can be accomplished using `hypothesis()`.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+options(width = 150)
+```
+
+```{r message=FALSE, warning=FALSE}
+hypothesis(bm_ex1_avg1, "cLangCMN > 1")
+```
+
+```{r message=FALSE, warning=FALSE}
+hypothesis(bm_ex1_avg1, "cVoiced:cLangCMN:cGenderMasc < 15")
+```
+
+
+
