@@ -127,7 +127,7 @@ df_contr_dialect <- data.frame(dialect = c('Athenian', 'AMG', 'Turkish'),
                                cDialect_AMGmATH = c(-2/3,   1/3,  1/3),
                                cDialect_TRmAMG  = c(-1/3,  -1/3,  2/3)
                                )
-df_ex2_amg %<>% left_join( df_contr_dialect )
+df_ex2_amg %<>% left_join( df_contr_dialect , by = "dialect")
 
 ```
 

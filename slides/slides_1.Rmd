@@ -75,6 +75,8 @@ options(width = 120)
 
 # Scope
 
+Slides + code + data at: https://github.com/plogacev/chorin_slides
+
 
 .pull-left[
 
@@ -108,6 +110,7 @@ options(width = 120)
 - A mixture model of intonation
 
 ]
+
 
 <!--
 
